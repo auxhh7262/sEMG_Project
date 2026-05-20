@@ -96,6 +96,27 @@ void SignalProcessor::init() {
     SP_LOG_NORMAL("SignalProcessor initialized. Version: %s (%s)\n", SIGNAL_PROCESSOR_VERSION, SIGNAL_PROCESSOR_DATE);
 }
 
+
+// v2: drain all available new samples from ring buffer
+uint16_t SignalProcessor::drainNewSamples(int16_t* outBuf, uint16_t maxCount) {
+    noInterrupts();
+    uint16_t avail = m_availableSamples;
+    if (avail == 0) {
+        interrupts();
+        return 0;
+    }
+    uint16_t count = (avail < maxCount) ? avail : maxCount;
+    // oldest samples first: read from (writeIndex - avail)
+    uint16_t startIdx = (m_writeIndex - avail) & RING_BUFFER_MASK;
+    for (uint16_t i = 0; i < count; i++) {
+        outBuf[i] = m_ringBuffer[(startIdx + i) & RING_BUFFER_MASK];
+    }
+    m_availableSamples -= count;
+    m_readIndex = (startIdx + count) & RING_BUFFER_MASK;
+    interrupts();
+    return count;
+}
+
 void SignalProcessor::resetBuffer() {
     noInterrupts();
     m_writeIndex = 0;

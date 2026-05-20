@@ -59,6 +59,7 @@ private:
     uint8_t _currentStage;          // 当前采集阶段 0~3
     bool _stageStarted[4];          // 各阶段是否已开始采集
     uint16_t _rawPhaseCount;         // 当前阶段已采集样本数（单缓冲区）
+    uint8_t _lastDbClientNum;        // 建库连接的clientNum
 
     // 依赖注入
     StateManager* _stateMgr;

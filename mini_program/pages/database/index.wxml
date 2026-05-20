@@ -248,13 +248,18 @@
         <text class="mark-title">疲劳程度标记</text>
         <view class="db-phase-grid">
           <view wx:for="{{MARK_LABELS}}" wx:key="index"
-                class="db-phase-btn {{currentMark > index ? 'collected' : (currentMark === index ? 'collecting' : 'disabled')}}"
-                data-mark="{{index}}" bindtap="{{currentMark === index ? 'onMarkConfirm' : ''}}">
+                class="db-phase-btn {{stageCompleted[index] ? 'collected' : (currentMark === index && !isRecording ? 'collecting' : (isRecording ? 'disabled' : 'disabled'))}}"
+                data-mark="{{index}}" bindtap="{{currentMark === index && !isRecording ? 'onMarkConfirm' : ''}}">
             <text class="phase-btn-icon">{{currentMark > index ? '✓' : (index + 1)}}</text>
             <text class="phase-btn-name">{{item}}</text>
           </view>
         </view>
-        <text class="mark-hint" wx:if="{{currentMark >= 0 && currentMark < 4}}">点击当前高亮按钮标记：{{MARK_LABELS[currentMark]}}</text>
+        <text class="mark-hint" wx:if="{{currentMark >= 0 && currentMark < 4 && !isRecording}}">点击当前高亮按钮标记：{{MARK_LABELS[currentMark]}}</text>
+        <!-- 录制中指示 -->
+        <view class="recording-indicator" wx:if="{{isRecording}}">
+          <view class="rec-dot"></view>
+          <text class="rec-text">正在采集原始数据...</text>
+        </view>
       </view>
 
       <text class="status-text">{{statusText}}</text>

@@ -256,12 +256,22 @@ void AppController::_handleErrorState(void) {
 }
 
 void AppController::_handleDbFeatureState(void) {
-    // 【修复】仅在当前阶段已启动时，才采集原始sEMG数据
-    static uint32_t lastSampleTime = 0;
-    if (_stageStarted[_currentStage] && millis() - lastSampleTime >= 10 && _rawPhaseBuf && _rawPhaseCount < 3000) {
-        int16_t rawSample = analogRead(A0);  // sEMG传感器接A0
-        _rawPhaseBuf[_rawPhaseCount++] = rawSample;
-        lastSampleTime = millis();
+    // v2: 从ADC环形缓冲区读取原始数据，1kHz，满 3000 自动保存
+    if (_stageStarted[_currentStage] && _rawPhaseBuf && _rawPhaseCount < 3000) {
+        uint16_t drained = _signalProc->drainNewSamples(_rawPhaseBuf + _rawPhaseCount, 3000 - _rawPhaseCount);
+        _rawPhaseCount += drained;
+        if (_rawPhaseCount >= 3000) {
+            // 自动保存当前阶段
+            bool ok = _storageMgr->BZone_AppendRawPhase(_currentStage, _rawPhaseBuf, _rawPhaseCount);
+            LOG("[CTRL] DB: Stage %d auto-saved %d samples, ok=%s\n", _currentStage, _rawPhaseCount, ok ? "YES" : "NO");
+            _stageStarted[_currentStage] = false;
+            _rawPhaseCount = 0;
+            memset(_rawPhaseBuf, 0, 3000 * sizeof(int16_t));
+            // 通知小程序
+            char resp[128];
+            snprintf(resp, sizeof(resp), "{\"cmd\":\"raw_phase_auto\",\"stage\":%d,\"ok\":%s}", _currentStage, ok ? "true" : "false");
+            _netMgr->sendJsonTo(_lastDbClientNum, resp);
+        }
     }
 
     // 建库特征采集状态：10Hz向B区写入特征序列，同时发送实时数据到小程序
@@ -521,6 +531,7 @@ void AppController::handleGetCurve(uint8_t clientNum, uint8_t curveId) {
 // ==================== 建库命令处理实现 ====================
 
 void AppController::handleStartDbFeature(uint8_t clientNum, JsonObject doc) {
+    _lastDbClientNum = clientNum;
     // 解析被试信息
     uint32_t subjectId = doc["subject_id"] | (millis() / 1000);
     uint8_t age = doc["age"] | 25;
@@ -619,7 +630,7 @@ void AppController::handleRawPhaseDone(uint8_t clientNum) {
 
     // 【修复】确认各阶段原始数据是否已保存
     for (uint8_t i = 0; i < 4; i++) {
-        if (_stageDataSaved[i]) {
+        if (_stageStarted[i]) {
             LOG("[CTRL] DB: stage %d raw data confirmed saved\n", i);
         } else {
             LOG("[CTRL] DB: WARNING - stage %d raw data NOT saved!\n", i);
@@ -638,7 +649,8 @@ void AppController::handleRawPhaseDone(uint8_t clientNum) {
 
     // 【修复】重置阶段管理变量
     _currentStage = 0;
-    memset(_stageDataSaved, 0, sizeof(_stageDataSaved));
+    memset(_stageStarted, 0, sizeof(_stageStarted));
+    _currentStage = 0;;
     _rawPhaseCount = 0;
 
     LOG("[CTRL] DB: record saved, ok=%s\n", ok ? "YES" : "NO");
@@ -717,7 +729,8 @@ void AppController::handleSaveCalib(uint8_t clientNum, int seq) {
 }
 
 void AppController::handleDbMark(uint8_t clientNum, JsonObject doc) {
-    // 仅在 ST_DB_FEATURE 状态下允许
+    _lastDbClientNum = clientNum;
+    // 【修复】保存前一阶段原始数据，启动当前阶段采集
     if (_stateMgr->getState() != ST_DB_FEATURE) {
         gNetManager.sendJsonTo(clientNum, "{\"cmd\":\"db_marked\",\"ok\":false,\"err\":\"not_in_db_feature\"}");
         return;
@@ -729,19 +742,27 @@ void AppController::handleDbMark(uint8_t clientNum, JsonObject doc) {
         return;
     }
 
-    // 【修复】标记前，先保存当前阶段剩余的原始数据到Flash
-    if (_rawPhaseBuf && _rawPhaseCount > 0) {
-        if (_storageMgr->BZone_AppendRawPhase(_currentStage + 1, _rawPhaseBuf, _rawPhaseCount)) {
-            _stageDataSaved[_currentStage] = true;
-            LOG("[CTRL] DB: stage %d raw data flushed (%d samples)\n", _currentStage, _rawPhaseCount);
+    // 保存前一阶段的原始数据
+    if (markIndex > 0 && _rawPhaseBuf && _rawPhaseCount > 0) {
+        uint8_t prevStage = markIndex - 1;
+        LOG("[CTRL] DB: Saving raw phase %d (%d samples)\n", prevStage, _rawPhaseCount);
+        bool saveOk = _storageMgr->BZone_AppendRawPhase(prevStage, _rawPhaseBuf, _rawPhaseCount);
+        if (saveOk) {
+            LOG("[CTRL] DB: Raw phase %d saved OK\n", prevStage);
+        } else {
+            LOG("[CTRL] DB: ERROR saving raw phase %d\n", prevStage);
         }
-        _rawPhaseCount = 0;  // 重置计数器，准备下一阶段
-        memset(_rawPhaseBuf, 0, 3000 * sizeof(int16_t));  // 清空缓冲区
+        _rawPhaseCount = 0;
+        memset(_rawPhaseBuf, 0, 3000 * sizeof(int16_t));
     }
+
+    // 启动当前阶段的采集
+    _currentStage = markIndex;
+    _stageStarted[markIndex] = true;
+    LOG("[CTRL] DB: Stage %d started collecting\n", markIndex);
 
     uint16_t featureIdx = _storageMgr->BZone_GetFeatureCount();
     bool ok = _storageMgr->BZone_MarkFeaturePoint(markIndex);
-
     LOG("[CTRL] DB: db_mark stage=%d, featureIdx=%d, ok=%s\n",
         markIndex, featureIdx, ok ? "YES" : "NO");
 
@@ -757,9 +778,7 @@ void AppController::handleDbMark(uint8_t clientNum, JsonObject doc) {
     }
     gNetManager.sendJsonTo(clientNum, resp);
 
-    // 【修复】切换到下一阶段
-    _currentStage = markIndex + 1;
-    if (_currentStage >= 4) {
+    if (markIndex >= 3) {
         LOG("[CTRL] DB: all 4 stages marked, ready to save\n");
     }
 }

@@ -54,6 +54,8 @@ Page({
     elapsedSec: 0,   // 已采集秒数
     totalSec: 300,   // 总计300秒
     currentMark: -1, // 当前标记到第几段(-1=未开始)
+    stageCompleted: [false, false, false, false], // 各阶段原始数据是否采集完成
+    isRecording: false, // 当前是否正在录制原始数据
     // 实时数据（采集中显示）
     liveRms: null,
     liveMdf: null,
@@ -81,6 +83,7 @@ Page({
   onUnload() {
     this._stopRealtimeListener();
     this._stopCalibListeners();
+    this._stopPushListener();
     if (this._collectionTimer) { clearInterval(this._collectionTimer); this._collectionTimer = null; }
   },
 
@@ -357,8 +360,41 @@ Page({
     this.setData({ liveRms: null, liveMdf: null, liveFatigue: null, liveFatigueStr: '--' });
   },
 
+  _startPushListener() {
+    this._stopPushListener();
+    this._pushHandler = (data) => {
+      if (data.cmd === 'raw_phase_auto') {
+        this._onRawPhaseAuto(data);
+      }
+    };
+    wifiClient.onPush(this._pushHandler);
+  },
+  _stopPushListener() {
+    if (this._pushHandler) {
+      wifiClient.offPush(this._pushHandler);
+      this._pushHandler = null;
+    }
+  },
+  _onRawPhaseAuto(data) {
+    const stage = data.stage;
+    const ok = data.ok;
+    const completed = [...this.data.stageCompleted];
+    completed[stage] = true;
+    this.setData({ stageCompleted: completed, isRecording: false });
+    if (ok) {
+      wx.showToast({ title: `${MARK_LABELS[stage]}采集完成`, icon: 'success', duration: 1500 });
+    } else {
+      wx.showToast({ title: `${MARK_LABELS[stage]}保存失败`, icon: 'none' });
+    }
+    // Check if all 4 stages done
+    if (completed.every(Boolean)) {
+      wx.showToast({ title: '4阶段全部完成', icon: 'success' });
+    }
+  },
+
   async _startCollection() {
     this._startRealtimeListener();
+    this._startPushListener();
     this.setData({
       dbPhase: DB_PHASE.COLLECTING,
       elapsedSec: 0,
@@ -395,18 +431,17 @@ Page({
         wx.showToast({ title: '标记失败: ' + (res.err || '未知错误'), icon: 'none' });
         return;
       }
+      // Mark confirmed, firmware starts collecting raw data (3s @1kHz)
+      this.setData({ isRecording: true, statusText: `正在采集: ${MARK_LABELS[cur]}（约3秒）...` });
     } catch(e) {
       wx.showToast({ title: '标记失败: ' + e.message, icon: 'none' });
       return;
     }
-    if (cur === 3) {
-      // 4个阶段全部标记完毕，自动保存
-      if (this._collectionTimer) { clearInterval(this._collectionTimer); this._collectionTimer = null; }
-      this._stopRealtimeListener();
-      this._doSave();
-    } else {
-      this.setData({ currentMark: cur + 1, statusText: `标记第${cur + 2}段: ${MARK_LABELS[cur + 1]}` });
+    // Move to next stage (button activates for next click)
+    if (cur < 3) {
+      this.setData({ currentMark: cur + 1 });
     }
+    // Note: don't auto-save on stage 3 anymore — wait for raw_phase_auto or timer
   },
 
   // ===================== 保存流程 =====================
@@ -466,8 +501,9 @@ Page({
   _resetAll() {
     if (this._collectionTimer) { clearInterval(this._collectionTimer); this._collectionTimer = null; }
     this._stopRealtimeListener();
+    this._stopPushListener();
     this._resetCalib();
-    this.setData({ dbPhase: DB_PHASE.IDLE, elapsedSec: 0, currentMark: -1, subject: null });
+    this.setData({ dbPhase: DB_PHASE.IDLE, elapsedSec: 0, currentMark: -1, subject: null, stageCompleted: [false,false,false,false], isRecording: false });
   },
 
   onFinish() {

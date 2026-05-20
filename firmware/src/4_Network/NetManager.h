@@ -21,7 +21,8 @@ public:
     // ---- JSON 命令接口 ----
     void sendJsonTo(uint8_t clientNum, const char* json);
     void sendJsonTo(uint8_t clientNum, const char* json, int seq);  // [v3.9.14] 带seq重载
-    void setAutoSeq(int seq);  // [v3.9.14] 设置自动seq（命令响应自动回传）
+    void setAutoSeq(int seq);       // [v3.9.14] 设置自动seq（命令响应自动回传）
+    void clearAutoSeq() { _autoSeq = -1; }  // 清除自动seq（push消息用）
     void setCommandCallback(void (*callback)(uint8_t, const char*));
 
     bool isWifiConnected() const;

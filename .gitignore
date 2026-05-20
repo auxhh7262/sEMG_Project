@@ -1,0 +1,30 @@
+# Firmware build artifacts
+firmware/.pio/
+
+# PlatformIO
+.pio/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+logs/*.txt
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Node
+node_modules/
+
+# Mini program build
+mini_program/miniprogram_npm/
+
+# Backup files
+*.bak
+*~

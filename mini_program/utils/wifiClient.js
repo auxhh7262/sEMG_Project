@@ -229,6 +229,15 @@ function enableHeartbeat(enabled) {
 // 事件监听接口（多监听器模式，支持多个页面同时订阅消息）
 // ============================================================
 
+let _pushListeners = []
+function onPush(fn) {
+  if (typeof fn === 'function' && !_pushListeners.includes(fn)) _pushListeners.push(fn)
+}
+function offPush(fn) {
+  if (!fn) { _pushListeners = [] }
+  else { const i = _pushListeners.indexOf(fn); if (i !== -1) _pushListeners.splice(i, 1) }
+}
+
 function onMessage(fn) {
   if (typeof fn === 'function' && !_messageListeners.includes(fn)) {
     _messageListeners.push(fn)
@@ -281,6 +290,12 @@ function _routeTypedMessage(rawData) {
       else reject(new Error((data.error || 'CMD_ERROR') + ': ' + (data.msg || '')))
       return true
     }
+  }
+
+  // Push message: cmd with no matching seq (unsolicited from firmware)
+  if (data.cmd && _pushListeners.length > 0) {
+    _pushListeners.forEach(fn => { try { fn(data) } catch (e) {} })
+    return true
   }
 
   return false
@@ -355,4 +370,4 @@ _cleanup = function() { _cleanupExtended(); _origCleanup() }
 
 function close() { _cleanup(); _updateStatus('disconnected', 'close()'); _currentIP = ''; _currentPort = 8888 }
 
-module.exports = { connect, disconnect, send, sendCmd, isConnected, setCallbacks, enableHeartbeat, onMessage, offMessage, onRealtimeData, offRealtimeData, onCalibData, offCalibData, close }
+module.exports = { connect, disconnect, send, sendCmd, isConnected, setCallbacks, enableHeartbeat, onMessage, offMessage, onRealtimeData, offRealtimeData, onCalibData, offCalibData, onPush, offPush, close }

@@ -640,3 +640,32 @@
   color: #ccc;
   border: 1px solid #3a3a4a;
 }
+
+/* 录制指示器 */
+.recording-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20rpx;
+  padding: 16rpx 32rpx;
+  background: rgba(255, 60, 60, 0.15);
+  border-radius: 12rpx;
+  border: 1rpx solid rgba(255, 60, 60, 0.3);
+}
+.rec-dot {
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 50%;
+  background: #ff3c3c;
+  margin-right: 16rpx;
+  animation: rec-pulse 1s ease-in-out infinite;
+}
+@keyframes rec-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.rec-text {
+  color: #ff6b6b;
+  font-size: 28rpx;
+  font-weight: 500;
+}

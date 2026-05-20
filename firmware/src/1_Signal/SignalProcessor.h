@@ -73,6 +73,10 @@ public:
     uint32_t getDroppedSamples() const { return m_droppedSamples; }
 
     void resetBuffer();
+
+    // v2: drain all new samples from ring buffer into user buffer
+    // returns number of samples drained (0 if empty)
+    uint16_t drainNewSamples(int16_t* outBuf, uint16_t maxCount);
     void resetSampleRateStats();
 
 private:
