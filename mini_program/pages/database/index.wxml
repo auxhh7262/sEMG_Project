@@ -1,0 +1,358 @@
+<!-- pages/database/index.wxml — 建库页（含独立校准流程） -->
+<view class="container">
+
+  <!-- 未连接设备警告 -->
+  <view class="conn-warning" wx:if="{{!connected}}">
+    <text class="conn-warning-text">⚠️ 未连接设备，请先在"网络配置"页连接</text>
+  </view>
+
+  <!-- ===================== IDLE 主界面 ===================== -->
+  <block wx:if="{{dbPhase === 'idle'}}">
+    <view class="idle-main">
+      <view class="menu-grid">
+        <view class="menu-item" bindtap="onNewRecord">
+          <text class="menu-icon">📝</text>
+          <text class="menu-text">新建档案</text>
+          <text class="menu-desc">采集受试者原始肌电数据</text>
+        </view>
+        <view class="menu-item" bindtap="onShowRecords">
+          <text class="menu-icon">📋</text>
+          <text class="menu-text">已有记录</text>
+          <text class="menu-desc">查看/删除建库档案</text>
+        </view>
+        <view class="menu-item" bindtap="onShowCurves">
+          <text class="menu-icon">📊</text>
+          <text class="menu-text">曲线库</text>
+          <text class="menu-desc">查看参考曲线元数据</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 建库说明 -->
+    <view class="help-inline">
+      <view class="help-header">
+        <text class="help-icon">💡</text>
+        <text class="help-title">数据库采集说明</text>
+      </view>
+      <view class="help-steps">
+        <view class="help-step">
+          <text class="step-num">1</text>
+          <text class="step-text">录入受试者姓名、性别、年龄、佩戴位置等基本信息，系统自动生成档案ID</text>
+        </view>
+        <view class="help-step">
+          <text class="step-num">2</text>
+          <text class="step-text">点击「开始校准」，完成肌电传感器校准</text>
+        </view>
+        <view class="help-step">
+          <text class="step-num">3</text>
+          <text class="step-text">点击「开始采集」，启动数据采集</text>
+        </view>
+        <view class="help-step">
+          <text class="step-num">4</text>
+          <text class="step-text">采集过程中，请保持肌肉持续收缩，当达到对应疲劳程度时，及时点击标记按钮（放松 → 初步疲劳 → 中等疲劳 → 重度疲劳）</text>
+        </view>
+        <view class="help-step">
+          <text class="step-num">5</text>
+          <text class="step-text">5分钟到点或4个阶段全部标记完毕，系统自动保存数据</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- ===================== 录入受试者信息弹窗 ===================== -->
+  <view class="modal-mask" wx:if="{{showDbForm}}" bindtap="onCancelForm">
+    <view class="modal-panel" catchtap="onStopPropagation">
+
+      <text class="modal-title">录入受试者信息</text>
+
+      <view class="form-row">
+        <view class="form-item form-col">
+          <text>姓名</text>
+          <input id="name" value="{{_dbForm.name}}" placeholder="请输入姓名" maxlength="20" bindinput="onDbFormInput"/>
+        </view>
+        <view class="form-item form-col">
+          <text>年龄</text>
+          <input id="age" type="number" value="{{_dbForm.age}}" placeholder="年龄" min="1" max="120" bindinput="onDbFormInput"/>
+        </view>
+      </view>
+
+      <view class="form-row">
+        <view class="form-item form-col">
+          <text>性别</text>
+          <radio-group name="gender" bindchange="onDbFormRadio">
+            <label><radio value="1" checked="{{_dbForm.gender==='1'}}"/> 男</label>
+            <label><radio value="2" checked="{{_dbForm.gender==='2'}}"/> 女</label>
+          </radio-group>
+        </view>
+        <view class="form-item form-col">
+          <text>佩戴</text>
+          <radio-group name="handedness" bindchange="onDbFormRadio">
+            <label><radio value="1" checked="{{_dbForm.handedness==='1'}}"/> 左手腕</label>
+            <label><radio value="2" checked="{{_dbForm.handedness==='2'}}"/> 右手腕</label>
+          </radio-group>
+        </view>
+      </view>
+
+      <view class="form-btns">
+        <button plain form-type="submit" class="btn-primary" bindtap="onDbFormConfirm">确认</button>
+        <button plain type="default" bindtap="onCancelForm">取消</button>
+      </view>
+
+    </view>
+  </view>
+
+  <!-- ===================== 校准阶段 ===================== -->
+  <block wx:if="{{dbPhase === 'calibrating'}}">
+
+    <!-- 校准-REST阶段 -->
+    <block wx:if="{{calibPhase === 'resting'}}">
+      <view class="status-area">
+        <view class="calib-phase-badge">
+          <text class="calib-badge-text">肌电校准 - 静息态</text>
+          <text class="calib-badge-progress">步骤 1/2</text>
+        </view>
+        <view class="hint-box">
+          <text class="hint-phase">静息态采集</text>
+          <text class="hint-text">请保持放松，不要用力</text>
+        </view>
+        <view class="live-values">
+          <view class="live-item">
+            <text class="live-label">RMS(mV)</text>
+            <text class="live-value calib-live">{{liveRestRms !== null ? liveRestRms : '--'}}</text>
+          </view>
+          <view class="live-item">
+            <text class="live-label">MDF(Hz)</text>
+            <text class="live-value calib-live">{{liveRestMdf !== null ? liveRestMdf : '--'}}</text>
+          </view>
+          <view class="live-item">
+            <text class="live-label">剩余(s)</text>
+            <text class="live-value calib-countdown">{{calibCountdown}}</text>
+          </view>
+        </view>
+        <text class="status-text">{{calibStatusText}}</text>
+        <button class="btn btn-secondary" bindtap="onCancelCalib">取消校准</button>
+      </view>
+    </block>
+
+    <!-- 校准-MAX等待 -->
+    <block wx:if="{{calibPhase === 'max_ready'}}">
+      <view class="status-area">
+        <view class="phase-transition">
+          <text class="transition-icon">✓</text>
+          <text class="transition-title">静息态采集完成</text>
+          <text class="transition-sub">请准备进入最大收缩阶段</text>
+        </view>
+        <button class="btn btn-primary btn-max-start" bindtap="onStartMax">开始最大收缩</button>
+        <text class="status-text">{{calibStatusText}}</text>
+        <button class="btn btn-secondary" bindtap="onCancelCalib" style="margin-top:16rpx;">取消校准</button>
+      </view>
+    </block>
+
+    <!-- 校准-MAX收缩阶段 -->
+    <block wx:if="{{calibPhase === 'max_contract'}}">
+      <view class="status-area">
+        <view class="calib-phase-badge">
+          <text class="calib-badge-text">肌电校准 - 最大收缩</text>
+          <text class="calib-badge-progress">步骤 2/2</text>
+        </view>
+        <view class="hint-box">
+          <text class="hint-phase">最大收缩</text>
+          <text class="hint-text">请握紧拳头至最大力，并保持</text>
+          <text class="hint-text red">持续握紧拳头至最大力！</text>
+        </view>
+        <view class="live-values">
+          <view class="live-item">
+            <text class="live-label">RMS(mV)</text>
+            <text class="live-value calib-live">{{liveMaxRms !== null ? liveMaxRms : '--'}}</text>
+          </view>
+          <view class="live-item">
+            <text class="live-label">MDF(Hz)</text>
+            <text class="live-value calib-live">{{liveMaxMdf !== null ? liveMaxMdf : '--'}}</text>
+          </view>
+          <view class="live-item">
+            <text class="live-label">剩余(s)</text>
+            <text class="live-value calib-countdown">{{calibCountdown}}</text>
+          </view>
+        </view>
+        <text class="status-text">{{calibStatusText}}</text>
+      </view>
+    </block>
+
+    <!-- 校准-结果展示 -->
+    <block wx:if="{{calibPhase === 'result'}}">
+      <view class="status-area">
+        <text class="phase-title">校准结果</text>
+        <view class="result-summary">
+          <view class="result-item">
+            <text class="result-label">静息态 RMS</text>
+            <text class="result-value">{{calibData ? calibData.rest_rms : '-'}} mV</text>
+          </view>
+          <view class="result-item">
+            <text class="result-label">最大收缩 RMS</text>
+            <text class="result-value">{{calibData ? calibData.max_rms : '-'}} mV</text>
+          </view>
+          <view class="result-item">
+            <text class="result-label">静息态 MDF</text>
+            <text class="result-value">{{calibData ? calibData.rest_mdf : '-'}} Hz</text>
+          </view>
+          <view class="result-item">
+            <text class="result-label">最大收缩 MDF</text>
+            <text class="result-value">{{calibData ? calibData.max_mdf : '-'}} Hz</text>
+          </view>
+        </view>
+
+        <view class="validation-result {{calibValidation && calibValidation.ok ? 'pass' : 'fail'}}">
+          <text class="val-icon">{{calibValidation && calibValidation.ok ? '✓' : '✗'}}</text>
+          <text class="val-text">{{calibValidation && calibValidation.ok ? '校准通过' : '校准未通过'}}</text>
+          <text class="val-detail" wx:if="{{calibValidation}}">MDF下降{{calibValidation.mdf_drop_pct.toFixed(1)}}%</text>
+        </view>
+
+        <view class="result-actions">
+          <button class="btn btn-primary" bindtap="onConfirmCalibResult" wx:if="{{calibValidation && calibValidation.ok}}">确认，开始采集</button>
+          <button class="btn btn-secondary" bindtap="onRetryCalib">重新校准</button>
+        </view>
+        <button class="btn btn-secondary" bindtap="onCancelCalib" style="margin-top:12rpx;">取消</button>
+      </view>
+    </block>
+
+  </block>
+
+  <!-- ===================== 采集中 ===================== -->
+  <block wx:if="{{dbPhase === 'collecting'}}">
+    <view class="status-area">
+      <view class="db-phase-badge">
+        <text class="db-badge-text">原始肌电数据采集</text>
+        <text class="db-badge-progress">{{elapsedSec}}s / {{totalSec}}s</text>
+      </view>
+      <view class="live-values">
+        <view class="live-item">
+          <text class="live-label">RMS(mV)</text>
+          <text class="live-value">{{liveRms !== null ? liveRms : '--'}}</text>
+        </view>
+        <view class="live-item">
+          <text class="live-label">MDF(Hz)</text>
+          <text class="live-value">{{liveMdf !== null ? liveMdf : '--'}}</text>
+        </view>
+        <view class="live-item">
+          <text class="live-label">疲劳度</text>
+          <text class="live-value">{{liveFatigueStr !== null ? liveFatigueStr : '--'}}</text>
+        </view>
+      </view>
+      <view class="progress-ring-wrapper">
+        <view class="countdown-val">{{totalSec - elapsedSec}}s</view>
+        <text class="hint-text">剩余时间</text>
+      </view>
+
+      <!-- 采集中即时标记按钮 -->
+      <view class="mark-section">
+        <text class="mark-title">疲劳程度标记</text>
+        <view class="db-phase-grid">
+          <view wx:for="{{MARK_LABELS}}" wx:key="index"
+                class="db-phase-btn {{currentMark > index ? 'collected' : (currentMark === index ? 'collecting' : 'disabled')}}"
+                data-mark="{{index}}" bindtap="{{currentMark === index ? 'onMarkConfirm' : ''}}">
+            <text class="phase-btn-icon">{{currentMark > index ? '✓' : (index + 1)}}</text>
+            <text class="phase-btn-name">{{item}}</text>
+          </view>
+        </view>
+        <text class="mark-hint" wx:if="{{currentMark >= 0 && currentMark < 4}}">点击当前高亮按钮标记：{{MARK_LABELS[currentMark]}}</text>
+      </view>
+
+      <text class="status-text">{{statusText}}</text>
+      <button class="btn btn-secondary" bindtap="_resetAll">终止采集</button>
+    </view>
+  </block>
+
+  <!-- ===================== 保存中 ===================== -->
+  <block wx:if="{{dbPhase === 'saving'}}">
+    <view class="status-area">
+      <view class="hint-box">
+        <text class="hint-phase">保存中</text>
+        <text class="hint-text">正在写入设备闪存，请稍候...</text>
+      </view>
+      <text class="status-text">{{statusText}}</text>
+    </view>
+  </block>
+
+  <!-- ===================== 保存完成 ===================== -->
+  <block wx:if="{{dbPhase === 'saved'}}">
+    <view class="status-area">
+      <view class="success-box">
+        <text class="success-icon">✓</text>
+        <text class="success-text">建库完成</text>
+        <text class="success-sub" wx:if="{{subject && subject.slot !== undefined}}">存储用户：{{subject.slot + 1}}</text>
+      </view>
+      <view class="result-summary" wx:if="{{subject}}">
+        <view class="result-item">
+          <text class="result-label">受试者</text>
+          <text class="result-value">{{subject.name}}</text>
+        </view>
+        <view class="result-item">
+          <text class="result-label">年龄/性别</text>
+          <text class="result-value">{{formatGender(subject.gender)}} {{subject.age}}岁</text>
+        </view>
+        <view class="result-item">
+          <text class="result-label">佩戴位置</text>
+          <text class="result-value">{{formatHand(subject.handedness)}}</text>
+        </view>
+        <view class="result-item">
+          <text class="result-label">存储用户</text>
+          <text class="result-value">{{subject.slot}}</text>
+        </view>
+      </view>
+      <button class="btn btn-primary btn-large" bindtap="onFinish">完成</button>
+    </view>
+  </block>
+
+  <!-- ===================== 记录列表弹窗 ===================== -->
+  <view class="modal-mask" wx:if="{{showRecordModal}}" bindtap="onCloseRecords">
+    <view class="modal-box" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">建库记录列表</text>
+        <text class="modal-close" catchtap="onCloseRecords">✕</text>
+      </view>
+      <scroll-view scroll-y class="modal-body">
+        <view wx:for="{{recordList}}" wx:key="slot" class="record-item">
+          <view class="record-info">
+            <text class="record-name">{{item.name || '(未命名)'}}</text>
+            <text class="record-meta">{{formatGender(item.gender)}} {{item.age}}岁 {{formatHand(item.handedness)}}</text>
+            <text class="record-slot">用户{{item.slot + 1}}</text>
+          </view>
+          <button class="btn-delete" data-slot="{{item.slot}}" catchtap="onDeleteRecord">删除</button>
+        </view>
+        <text wx:if="{{!recordList || recordList.length === 0}}" class="empty-tip">暂无记录</text>
+      </scroll-view>
+      <view class="modal-actions-bottom">
+        <button class="btn btn-secondary" bindtap="onCloseRecords">关闭</button>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===================== 曲线库弹窗 ===================== -->
+  <view class="modal-mask" wx:if="{{showCurveLibModal}}" bindtap="onCloseCurves">
+    <view class="modal-box modal-curve-lib" catchtap="">
+      <view class="modal-header">
+        <text class="modal-title">参考曲线库</text>
+        <text class="modal-close" catchtap="onCloseCurves">✕</text>
+      </view>
+      <scroll-view scroll-y class="modal-body">
+        <view wx:for="{{curveList}}" wx:key="curve_id" class="curve-item">
+          <view class="curve-item-left">
+            <text class="curve-item-id">ID: {{item.curve_id}}</text>
+            <text class="curve-item-desc">{{item.name || '曲线#' + item.curve_id}}</text>
+            <view class="curve-item-meta">
+              <text class="meta-tag">{{formatGender(item.gender)}}</text>
+              <text class="meta-tag">{{item.age_min}}-{{item.age_max}}岁</text>
+              <text class="meta-tag">{{formatHand(item.handedness)}}</text>
+              <text class="meta-tag {{item.status === 1 ? 'curve-ok' : 'curve-stale'}}">{{item.status === 1 ? '可用' : '待填充'}}</text>
+            </view>
+          </view>
+        </view>
+        <text wx:if="{{!curveList || curveList.length === 0}}" class="empty-tip">曲线库为空</text>
+      </scroll-view>
+      <view class="modal-actions-bottom">
+        <button class="btn btn-secondary" bindtap="onCloseCurves">关闭</button>
+      </view>
+    </view>
+  </view>
+
+</view>

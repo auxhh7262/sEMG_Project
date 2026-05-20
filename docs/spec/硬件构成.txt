@@ -1,0 +1,21 @@
+1、Arduino Uno R4（wifi版）
+https://item.taobao.com/item.htm?id=992406694935&mi_id=0000iFMbyhhFmYfxRv7jIKUcuYlNnYnFdq4Z-gQkpl7r5aM&spm=tbpc.boughtlist.suborder_itemtitle.1.23e12e8dCVamAq&skuId=6132115610077
+
+2、sEMG单通道干电极单导肌电传感器表面肌电采集模块Arduino套件
+https://item.taobao.com/item.htm?id=619734336326&mi_id=0000wxbUHOTgRxYGLJ_i5sX9avdIRsn7rp_0AYvxU84ggNk&spm=tbpc.boughtlist.suborder_itemtitle.1.23e12e8dCVamAq&skuId=4380291748740
+
+https://sichiray-tech.yuque.com/dm0eyv/chanpin/nlfil1k6ane3z6gf
+
+
+
+3、I2C 1602液晶显示屏
+https://item.taobao.com/item.htm?id=562713954507&mi_id=0000_VNjdvFLRrrHtgjhdIlidF_ZhUsc6GYCPUMWghQptbA&spm=tbpc.boughtlist.suborder_itemtitle.1.23e12e8dCVamAq
+
+4、RGB灯
+https://item.taobao.com/item.htm?id=696232370593&mi_id=0000Qvlveh-7DDwj7aqvk-Q89PUaH9rA3nZknPHLDBIRj3M&spm=tbpc.boughtlist.suborder_itemtitle.1.23e12e8dCVamAq
+
+5、蜂鸣器
+https://item.taobao.com/item.htm?id=542450187660&mi_id=0000Tje-UYJUivGYiW4vi1saCkYDdYtdQHoamk-PN3umvYI&spm=tbpc.boughtlist.suborder_itemtitle.1.23e12e8dCVamAq
+
+6、存储
+https://item.taobao.com/item.htm?from=cart&id=643663364434&pisk=gryxc19kqabcVCX5JKfuIcSt_RIkH_q42rrBIV0D1zU85PnMIlgiBPUTWqc1ux2TyPatjdq_Icwt38VDIqbqBlanBwbhK9q40vH1-wbQziztdD8X1Fc1F3MiXoD6v4r40Au6qF13NoW9aWmdlcg12YisjCMsGqOSF4o95maslbTSvDks5PasNLiKjnij5I9WF4oHCKisf4gSvD96hVa_VgnZPVMsGPZ52cuS5biVD4-jDdFWHtkm5NhkCdw-Db1uc4TKi8ixV2EbHd91bmhxRogRkkhVvbZZ6R-wBfEbTPoQlE_t78E7hWaCrI0b9cE36o6XFx24cWG_dNR_0x0xF-NpfdZ-Hq4TBb8Ay2w4VJkSZ9sLV8z008EMfOiu-4Z4hABCYxHjlYnzIaJjW7N_njkwlN3aeuwb6gr8KJIUPe0KjIsR2CRZG0oqa3zdjciHL03hcjOw_fmr22jR2CRZG0o--i96_Cli4&skuId=4639727285422&spm=a1z0d.6639537%2F202410.item.d643663364434.142a7484vk1CT2&upStreamPrice=515
