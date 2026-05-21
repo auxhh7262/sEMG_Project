@@ -16,7 +16,7 @@ public:
 
     void init(BleConfigServer* bleServer);
     void tick();
-    void sendData(float rms, float mdf, float fatigue, uint8_t quality, float activation = 0.0f, bool isCalibMode = false);
+    void sendData(float rms, float mdf, float fatigue, uint8_t quality, float activation = 0.0f, bool isCalibMode = false, const char* calibPhase = nullptr);
 
     // ---- JSON 命令接口 ----
     void sendJsonTo(uint8_t clientNum, const char* json);

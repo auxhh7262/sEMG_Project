@@ -305,7 +305,7 @@ void NetManager::_getTimestamp(uint32_t &sec, uint16_t &ms) {
 }
 
 // [B1-4-fix] JSON 缓冲区从128字节扩展到192字节，防止 snprintf 截断
-void NetManager::sendData(float rms, float mdf, float fatigue, uint8_t quality, float activation, bool isCalibMode) {
+void NetManager::sendData(float rms, float mdf, float fatigue, uint8_t quality, float activation, bool isCalibMode, const char* calibPhase) {
     if (!_tcpStreaming) return;
     
     uint32_t sec;
@@ -314,10 +314,10 @@ void NetManager::sendData(float rms, float mdf, float fatigue, uint8_t quality, 
 
     int written;
     if (isCalibMode) {
-        // 校准模式：f/q/a无效，加mode标记让小程序区分
+        // 校准模式：加type+phase让小程序onCalibData匹配
         written = snprintf(_tcpJsonBuf, sizeof(_tcpJsonBuf),
-                 "{\"ts\":%lu%03u,\"r\":%.2f,\"m\":%.1f,\"mode\":\"calib\"}",
-                 sec, ms, rms, mdf);
+                 "{\"type\":\"calib_data\",\"phase\":\"%s\",\"ts\":%lu%03u,\"r\":%.2f,\"m\":%.1f}",
+                 calibPhase ? calibPhase : "REST", sec, ms, rms, mdf);
     } else {
         written = snprintf(_tcpJsonBuf, sizeof(_tcpJsonBuf),
                  "{\"ts\":%lu%03u,\"r\":%.2f,\"m\":%.1f,\"f\":%.2f,\"q\":%u,\"a\":%.2f}",

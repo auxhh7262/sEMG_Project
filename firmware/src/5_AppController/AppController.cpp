@@ -1,4 +1,4 @@
-#include "AppController.h"
+﻿#include "AppController.h"
 #include "0_Base/Logger.h"
 #include "0_Base/Board.h"
 #include "3_Storage/StorageManager.h"
@@ -181,7 +181,7 @@ void AppController::_handleCalibRestState(void) {
 
     // 推送实时数据到小程序（让用户看到校准进度）
     if (rms > 0.0f) {
-        _netMgr->sendData(rms, mdf, 0.0f, 0, 0.0f, true);  // 校准模式：无f/q/a
+        _netMgr->sendData(rms, mdf, 0.0f, 0, 0.0f, true, "REST");  // 校准模式：REST阶段
     }
 
     // 检查静息阶段是否结束
@@ -209,7 +209,7 @@ void AppController::_handleCalibMaxState(void) {
 
     // 推送实时数据到小程序（让用户看到校准进度）
     if (rms > 0.0f) {
-        _netMgr->sendData(rms, mdf, 0.0f, 0, 0.0f, true);  // 校准模式：无f/q/a
+        _netMgr->sendData(rms, mdf, 0.0f, 0, 0.0f, true, "MAX");  // 校准模式：MAX阶段
     }
 
     // 检查最大收缩阶段是否结束
@@ -304,7 +304,7 @@ void AppController::handleQueryCZ(uint8_t clientNum, uint32_t startTs, uint32_t 
     bool ok = _storageMgr->CZone_QueryByTimeRange(startTs, endTs, points, 100, &count, &nextTs);
     
     if (!ok || count == 0) {
-        gNetManager.sendJsonTo(clientNum, "{\"cmd\":\"cz_data\",\"points\":[]}");
+        PersonalCalibData_t calib = {0};         bool hc = _storageMgr->GetPersonalCalib(&calib) && calib.has_curve;         char buf[128];         snprintf(buf, sizeof(buf), "{\"cmd\":\"cz_data\",\"points\":[],\"has_curve\":%d}", hc ? 1 : 0);         gNetManager.sendJsonTo(clientNum, buf);
         return;
     }
     
@@ -312,6 +312,10 @@ void AppController::handleQueryCZ(uint8_t clientNum, uint32_t startTs, uint32_t 
     for (uint16_t batch = 0; batch < count; batch += 20) {
         StaticJsonDocument<1024> doc;
         doc["cmd"] = "cz_data";
+        // [Bug fix] has_curve from A-zone
+        PersonalCalibData_t calibInfo = {0};
+        bool hasC = _storageMgr->GetPersonalCalib(&calibInfo) && calibInfo.has_curve;
+        doc["has_curve"] = hasC ? 1 : 0;
         JsonArray pts = doc.createNestedArray("points");
         
         uint16_t batchEnd = (batch + 20 < count) ? batch + 20 : count;

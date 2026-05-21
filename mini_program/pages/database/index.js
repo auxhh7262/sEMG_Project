@@ -53,7 +53,7 @@ Page({
     // 采集进度
     elapsedSec: 0,   // 已采集秒数
     totalSec: 300,   // 总计300秒
-    currentMark: -1, // 当前标记到第几段(-1=未开始)
+    currentMark: 0, // [Bug A fix] 初始=0，第一个标记按钮可点击, // 当前标记到第几段(-1=未开始)
     stageCompleted: [false, false, false, false], // 各阶段原始数据是否采集完成
     isRecording: false, // 当前是否正在录制原始数据
     // 实时数据（采集中显示）
@@ -398,7 +398,7 @@ Page({
     this.setData({
       dbPhase: DB_PHASE.COLLECTING,
       elapsedSec: 0,
-      currentMark: -1,
+      currentMark: 0,
       statusText: '开始采集...',
       liveRms: null, liveMdf: null, liveFatigue: null, liveFatigueStr: '--',
     });
