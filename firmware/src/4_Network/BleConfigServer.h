@@ -29,12 +29,19 @@ public:
     void startAdvertising();
     uint8_t getState();
     bool canWriteIp();
+    void _onDeviceConnected();
     
     // 【新增】动态设置 BLE 广播名称，方便多设备区分
     void setDeviceName(const char* name) {
         BLE.setDeviceName(name);
         BLE.setLocalName(name);
     }
+
+    // 【新增】WiFi信息回调，BLE重连时通知外部推送IP
+    typedef void(*WiFiInfoCallback_t)();
+    static void setWifiInfoCallback(WiFiInfoCallback_t cb) { _wifiInfoCb = cb; }
+    static void triggerWifiInfoCb() { if (_wifiInfoCb) _wifiInfoCb(); }
+    static WiFiInfoCallback_t _wifiInfoCb;
 
     // 【新增】用于解决 ArduinoBLE 不支持 Lambda 回调的静态函数与实例指针
     static void onSsidWritten(BLEDevice device, BLECharacteristic characteristic);

@@ -1,10 +1,10 @@
 {
   "pages": [
+    "pages/network/index",
     "pages/calibrate/index",
     "pages/database/index",
     "pages/realtime/index",
-    "pages/analysis/index",
-    "pages/network/index"
+    "pages/analysis/index"
   ],
   "window": {
     "backgroundTextStyle": "light",

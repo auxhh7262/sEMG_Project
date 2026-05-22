@@ -39,6 +39,7 @@ def monitor_loop(ser):
             last_callbacks = None
             line_count = 0
 
+            line_buf = ''
             while True:
                 try:
                     data = ser.read(ser.in_waiting or 1)
@@ -47,10 +48,12 @@ def monitor_loop(ser):
                             text = data.decode('utf-8', errors='replace')
                         except Exception:
                             text = data.decode('latin-1', errors='replace')
-                        ts = time.strftime('%H:%M:%S')
-                        for line in text.split('\n'):
+                        line_buf += text
+                        while '\n' in line_buf:
+                            line, line_buf = line_buf.split('\n', 1)
                             line = line.strip()
                             if line:
+                                ts = time.strftime('%H:%M:%S')
                                 log_line = f'[{ts}] {line}\n'
                                 sys.stdout.write(log_line)
                                 sys.stdout.flush()

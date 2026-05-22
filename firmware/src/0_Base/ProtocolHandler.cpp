@@ -142,8 +142,13 @@ void ProtocolHandler::handleJsonCommand(uint8_t clientNum, const char* json) {
         return;
     }
     
-    // [v3.9.14] 提取seq用于命令-响应匹配
-    int seq = doc["seq"] | -1;
+    // [v3.9.14] 提取seq用于命令-响应匹配（兼容int和string类型）
+    int seq = -1;
+    if (doc["seq"].is<int>()) {
+        seq = doc["seq"].as<int>();
+    } else if (doc["seq"].is<const char*>()) {
+        seq = atoi(doc["seq"].as<const char*>());
+    }
     
     LOG("[PROTO] cmd='%s' seq=%d\n", cmd, seq);
     gNetManager.setAutoSeq(seq);
@@ -236,7 +241,10 @@ void ProtocolHandler::handleJsonCommand(uint8_t clientNum, const char* json) {
     }
     // [v3.9.14] 获取校准结果
     else if (strcmp(cmd, "get_calib_result") == 0) {
+        LOG("[PROTO] about to call handleGetCalibResult client=%d seq=%d\n", clientNum, seq);
+        Serial.println("PROTO_BEFORE_GCR");
         gAppController.handleGetCalibResult(clientNum, seq);
+        Serial.println("PROTO_AFTER_GCR"); LOG("[PROTO] handleGetCalibResult returned\n");
     }
     // 启动校准（[v3.9.14] 支持 phase 参数：REST 或 MAX，并回传 seq）
     else if (strcmp(cmd, "start_calib") == 0) {
@@ -262,6 +270,9 @@ void ProtocolHandler::handleJsonCommand(uint8_t clientNum, const char* json) {
         } else if (st == ST_IDLE) {
             // IDLE状态：启动校准流程（校准完成后自动进入MONITORING）
             gAppController.onCommandReceived(CMD_START_CALIB);
+        } else if (st == ST_CALIB_DONE) {
+            // [修复] CALIB_DONE：校准刚完成，直接保存并进入MONITORING
+            gAppController.handleSaveCalib(clientNum, seq);
         } else {
             // 其他状态（CALIB_REST/MAX/DB_FEATURE等）：忽略，回复当前状态
             char resp[64];

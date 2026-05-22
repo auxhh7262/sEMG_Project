@@ -8,7 +8,8 @@ Page({
     isConnected: false,
     isLoading: false,
     isEmpty: true,
-    hasCurve: false,       // A区是否有拟合曲线
+    hasCurve: false,
+    algorithm: '--',       // A区是否有拟合曲线
     errorMsg: '',
 
     // 时间筛选
@@ -35,10 +36,13 @@ Page({
   onUnload() {},
 
   onShow() {
+
+
+
+    console.log('[analysis] onShow');
     this._tabVisible = true;
     if (wifiClient.isConnected()) {
       this.setData({ isConnected: true });
-      this._queryAlgorithmAndLoad();
     } else {
       this._silentConnect();
     }
@@ -61,7 +65,6 @@ Page({
       retry++;
       wifiClient.connect(ip, port).then(() => {
         this.setData({ isConnected: true });
-        this._queryAlgorithmAndLoad();
       }).catch(() => setTimeout(tryConn, 2500));
     };
     setTimeout(tryConn, 500);
@@ -77,11 +80,16 @@ Page({
         await wifiClient.sendCmd('load_user', { slot: user.slot }).catch(() => {});
       }
       const res = await wifiClient.sendCmd('query_cz', {});
-      if (res && res.has_curve !== undefined) {
-        this.setData({ hasCurve: !!res.has_curve });
+      if (res) {
+        if (res.has_curve) {
+          this.setData({ hasCurve: true, algorithm: '个性化曲线' });
+        } else if (res.ref_mdf && res.ref_mdf > 0) {
+          this.setData({ hasCurve: false, algorithm: '默认MDF下降率' });
+        } else {
+          this.setData({ hasCurve: false, algorithm: '无校准' });
+        }
       }
     } catch (e) { /* 非关键，继续加载 */ }
-    this._loadData();
   },
 
   // ──── 日期范围 ────
@@ -322,7 +330,15 @@ Page({
     const item = this.data.dateRange.find(r => r.key === key);
     if (!item) return;
     this.setData({ selectedRange: key, startDate: item.start, endDate: item.end });
-    this._loadData();
+  },
+
+  // 点击查询按钮：发指令加载数据
+  async onQuery() {
+    if (!wifiClient.isConnected()) {
+      wx.showToast({ title: '请先连接设备', icon: 'none' });
+      return;
+    }
+    this._queryAlgorithmAndLoad();
   },
 
   onRefresh() { this._loadData(); },

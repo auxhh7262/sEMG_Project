@@ -242,6 +242,23 @@
   gap: 16rpx;
 }
 
+/* 刷新IP按钮 */
+.btn-refresh-wrap {
+  margin-bottom: 16rpx;
+}
+.btn-refresh {
+  background: rgba(56, 189, 248, 0.12);
+  border: 2rpx solid rgba(56, 189, 248, 0.3);
+  color: #38bdf8;
+  border-radius: 16rpx;
+  padding: 18rpx 0;
+  text-align: center;
+  font-size: 28rpx;
+}
+.btn-refresh:active {
+  background: rgba(56, 189, 248, 0.2);
+}
+
 /* 按钮组（三按钮一排） - 统一高度80rpx，gap 12rpx */
 .btn-group-three {
   display: flex;
@@ -369,6 +386,24 @@
   font-weight: 700;
   color: #10b981;
   word-break: break-all;
+}
+
+/* IP卡片右侧刷新按钮 */
+.ip-right {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+}
+.btn-ip-refresh {
+  background: rgba(56, 189, 248, 0.15);
+  border: 1rpx solid rgba(56, 189, 248, 0.35);
+  color: #38bdf8;
+  border-radius: 8rpx;
+  padding: 12rpx 24rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+.btn-ip-refresh:active {
+  background: rgba(56, 189, 248, 0.3);
 }
 
 /* 重置说明 */

@@ -5,6 +5,7 @@
 
 // 静态成员初始化
 BleConfigServer* BleConfigServer::_instance = nullptr;
+BleConfigServer::WiFiInfoCallback_t BleConfigServer::_wifiInfoCb = nullptr;
 
 BleConfigServer::BleConfigServer() 
     : _state(BLE_STATE_DISCONNECTED)
@@ -44,6 +45,11 @@ void BleConfigServer::init() {
 
     BLE.setEventHandler(BLEConnected, [](BLEDevice device) {
         LOG("[BLE] 设备已连接: %s\n", device.address().c_str());
+        // BLE重连后主动推送当前WiFi IP（延迟500ms确保BLE连接稳定）
+        delay(500);
+        if (_instance) {
+            _instance->_onDeviceConnected();
+        }
     });
     BLE.setEventHandler(BLEDisconnected, [](BLEDevice device) {
         LOG("[BLE] 设备已断开\n");
@@ -97,6 +103,15 @@ void BleConfigServer::tick() {
             LOG("[BLE] 设备断开，重新开始广告\n");
         }
     }
+
+    // 检测 central 刚订阅 IP 通知（用 static 跟踪状态变化）
+    static bool wasSubscribed = false;
+    bool isSubscribed = _ipAddressChar.subscribed();
+    if (_deviceConnected && isSubscribed && !wasSubscribed) {
+        LOG("[BLE] 检测到IP通知订阅，主动推送IP...\r\n");
+        triggerWifiInfoCb();
+    }
+    wasSubscribed = isSubscribed;
 }
 
 bool BleConfigServer::hasNewCredentials() {
@@ -128,13 +143,14 @@ bool BleConfigServer::updateIpAddress(const char* ipJson) {
     if (!_deviceConnected) {
         return false;
     }
-    bool success = _ipAddressChar.writeValue(ipJson);
-    if (success) {
-        LOG("[BLE] ✅ IP特征更新成功: %s\n", ipJson);
+    _ipAddressChar.setValue(ipJson);
+    // BLE.poll() 在 tick() 中调用，会自动发送通知（如果 central 已订阅）
+    if (_ipAddressChar.subscribed()) {
+        LOG("[BLE] ✅ IP已更新，通知将发出: %s\n", ipJson);
     } else {
-        LOG("[BLE] ❌ IP特征更新失败\n");
+        LOG("[BLE] ℹ️ IP已更新（central未订阅，等订阅后可READ）: %s\n", ipJson);
     }
-    return success;
+    return true;
 }
 
 // [B0-1-fix] pauseAdvertising: BLE.advertise() 是"开始广播"的动作函数，不是查询
@@ -153,6 +169,11 @@ void BleConfigServer::resumeAdvertising() {
 void BleConfigServer::startAdvertising() {
     BLE.advertise();
     _shouldAdvertise = true;
+}
+
+void BleConfigServer::_onDeviceConnected() {
+    LOG("[BLE] 设备连接，触发WiFi信息推送\n");
+    triggerWifiInfoCb();
 }
 
 // [B0-2-fix] getState: 不再误用 BLE.advertise()

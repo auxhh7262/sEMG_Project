@@ -70,12 +70,6 @@ Page({
   // ──── 页面生命周期 ────
 
   onLoad() {
-    const cachedIp = wx.getStorageSync('device_ip')
-
-    if (cachedIp) {
-      this.setData({ deviceIp: cachedIp })
-      this._setStep(STEP.SUCCESS)
-    }
     // 加载缓存的设备WiFi名称
     const cachedSsid = wx.getStorageSync('device_ssid')
     if (cachedSsid) {
@@ -106,13 +100,24 @@ Page({
         this._setStep(STEP.SUCCESS)
         this._showResult('success', '配网成功！设备 IP: ' + ip)
       }
+      // 收到新IP，断开旧TCP用新IP重连
+      const wifiClient = require('../../utils/wifiClient')
+      if (wifiClient) {
+        wifiClient.disconnect()
+        log('[设置] 旧TCP已断开，用新IP重连:', ip, port || 8888)
+        wifiClient.connect(ip, port || 8888).catch(err => {
+          warn('[设置] 新IP连接失败:', err)
+        })
+      }
     })
   },
 
   onShow() {
     // 切换到 idle 模式（网络配置页不主动收数据）
     const prevMode = app.setDataMode('idle');
-    log('[设置] 数据模式切换:', prevMode, '→ idle');
+    if (prevMode !== 'idle') {
+      log('[设置] 数据模式切换:', prevMode, '→ idle');
+    }
     
     const cachedIp = wx.getStorageSync('device_ip')
     const isValidIp = cachedIp && cachedIp !== '0.0.0.0' && cachedIp !== ''
@@ -178,9 +183,11 @@ Page({
         this.setData({ bleConnected: true, deviceName: device.name || '', deviceRssi: device.RSSI || null })
         this._updateCanSend()
         this._startConnectionMonitor()
+        this._showResult('success', 'BLE已重连，等待设备推送IP...')
       })
       .catch(err => {
         error('[设置] BLE重连失败:', err)
+        this._showResult('error', 'WiFi连接失败且BLE重连失败，请靠近设备重试')
         try { ble.close() } catch (e) {}  // [FIX#3] 清理BLE资源
       })
   },
@@ -277,9 +284,37 @@ Page({
     }
   },
 
+  async onRefreshIp() {
+    this._showResult('success', '正在刷新设备IP...')
+    // 如果BLE已连接，断开重连触发设备重新推送IP
+    if (this.data.bleConnected) {
+      try { ble.close() } catch (e) {}
+      this.setData({ bleConnected: false })
+      if (this._connectionTimer) { clearInterval(this._connectionTimer); this._connectionTimer = null }
+      await new Promise(r => setTimeout(r, 500))
+    }
+    // 扫描连接BLE，触发设备推送IP
+    this.setData({ isScanning: true })
+    try {
+      const device = await ble.scanAndConnect('sEMG_')
+      this.setData({ bleConnected: true, deviceName: device.name || '', deviceRssi: device.RSSI || null, isScanning: false })
+      this._updateCanSend()
+      this._startConnectionMonitor()
+      log('[设置] BLE连接成功，等待设备推送IP...')
+    } catch (err) {
+      this.setData({ isScanning: false })
+      this._showResult('error', 'BLE连接失败，无法刷新IP')
+    }
+  },
+
   onReset() {
     this._cleanup()
     try { ble.close() } catch (e) {}
+    // 断开WiFi TCP连接
+    try {
+      const wifiClient = require('../../utils/wifiClient')
+      if (wifiClient && wifiClient.isConnected()) wifiClient.disconnect()
+    } catch (e) {}
 
     this.setData({
       currentStep: STEP.IDLE,
@@ -346,7 +381,13 @@ Page({
     wx.getConnectedWifi({
       success: (res) => {
         log('[设置] 手机WiFi:', res.wifi.SSID)
-        this.setData({ phoneWifiSsid: res.wifi.SSID || '' })
+        const ssid = res.wifi.SSID || ''
+        this.setData({ phoneWifiSsid: ssid })
+        // 自动填入SSID（仅当输入框为空时）
+        if (ssid && !this.data.ssid) {
+          this.setData({ ssid })
+          this._updateCanSend()
+        }
       },
       fail: (err) => {
         const msg = err.errMsg || ''

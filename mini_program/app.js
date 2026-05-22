@@ -121,6 +121,14 @@ App({
 
     _origLog('[App] 小程序启动');
 
+    // 启动时如果有缓存IP，自动尝试TCP连接
+    const cachedIP = wx.getStorageSync('device_ip');
+    const cachedPort = wx.getStorageSync('device_port') || 8888;
+    if (cachedIP && cachedIP !== '0.0.0.0') {
+      _origLog('[App] 发现缓存IP，自动连接:', cachedIP);
+      wifiClient.connect(cachedIP, cachedPort).catch(() => {});
+    }
+
     // 启动时直接ping日志服务器，验证网络连通性
     wx.request({
       url: LOG_SERVER_URL,
@@ -139,7 +147,38 @@ App({
       }
       wx.setStorageSync('device_ip', ip);
       wx.setStorageSync('device_port', port || 8888);
+      // 全局IP更新时通知wifiClient用新IP重连
+      const wifiClient = require('./utils/wifiClient')
+      if (wifiClient) {
+        wifiClient.disconnect()
+        wifiClient.connect(ip, port || 8888).catch(() => {})
+      }
     });
+
+    // 全局TCP断连监听：设备断电/断网时通知用户
+    wifiClient.setCallbacks(
+      null,  // onMessage
+      (status, message) => {  // onStatusChange
+        if (status === 'disconnected') {
+          const pages = getCurrentPages()
+          const curPage = pages[pages.length - 1]
+          const curRoute = curPage ? curPage.route : ''
+          // network页自己处理重连逻辑，不弹提示
+          if (curRoute && curRoute.includes('network')) return
+          // 其他页面：如果之前是连接状态，弹提示
+          const wasConnected = this._lastTcpStatus === 'connected'
+          if (wasConnected) {
+            wx.showToast({ title: '设备连接断开', icon: 'none', duration: 3000 })
+          }
+        }
+        if (status === 'reconnect_failed') {
+          wx.showToast({ title: '设备已断开，请检查设备电源', icon: 'none', duration: 5000 })
+        }
+        this._lastTcpStatus = status
+      },
+      null,  // onError
+      null   // onIpSent
+    )
   },
 
   setDataMode(newMode) {

@@ -88,6 +88,10 @@ Page({
   },
 
   onShow() {
+
+
+
+    console.log('[database] onShow');
     this.setData({ connected: wifiClient.isConnected() });
   },
 

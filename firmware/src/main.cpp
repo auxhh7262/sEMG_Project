@@ -140,7 +140,7 @@ void setup() {
     });
 
     // 初始化完成，进入 IDLE 状态
-    gState.transitionTo(ST_IDLE);
+    // [FIX] Removed: gState.transitionTo(ST_IDLE);
 
     LOG("[MAIN] V1.0 系统初始化完成\n");
 }

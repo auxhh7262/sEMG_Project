@@ -9,7 +9,12 @@ const char* NTP_SERVER = "ntp.aliyun.com";
 const int NTP_PORT = 123;
 const int NTP_PACKET_SIZE = 48;
 
-// [B1-1-fix] 需要访问 StorageManager 加载 EEPROM 中的 WiFi 凭证
+// BLE重连时推送WiFi IP的静态回调（无法用lambda绑定this）
+static NetManager* _netMgrInstance = nullptr;
+static void onBleDeviceConnected() {
+    if (_netMgrInstance) _netMgrInstance->_pushWifiIp();
+}
+
 extern StorageManager gStorage;
 
 // JSON 命令回调
@@ -28,9 +33,11 @@ NetManager::NetManager()
       _eepromCredsTried(false),
       _dhcpWaitDone(false),
       _dhcpGotIp(false),
+      _bleIpPushPending(false),
       _ntpPending(false),
       _ntpRequestTime(0),
       _lastDisconnectLogMs(0),
+      _lastZombieCheck(0),
       _autoSeq(-1) {
     memset(_ntpPacketBuffer, 0, sizeof(_ntpPacketBuffer));
     memset(_tcpJsonBuf, 0, sizeof(_tcpJsonBuf));
@@ -38,6 +45,8 @@ NetManager::NetManager()
 
 void NetManager::init(BleConfigServer* bleServer) {
     _bleServer = bleServer;
+    _netMgrInstance = this;
+    BleConfigServer::setWifiInfoCallback(onBleDeviceConnected);
     _tcpServer.begin();
 
     // 初始化 NTP UDP 端口（必须调用 begin 才能收发 UDP 包）
@@ -46,6 +55,11 @@ void NetManager::init(BleConfigServer* bleServer) {
     _tcpServer.onEvent([this](uint8_t num, WStype_t type, uint8_t *payload, size_t length) {
         switch (type) {
             case WStype_CONNECTED:
+                // 如果已有客户端，先断开旧的（防止僵尸连接占用）
+                if (_currentClient != 255 && _currentClient != num) {
+                    LOG("[TCP] Disconnecting old client %d for new client %d\n", _currentClient, num);
+                    _tcpServer.disconnect(_currentClient);
+                }
                 _tcpStreaming = true;
                 _currentClient = num;
                 LOG("[TCP] Client %d connected\n", num);
@@ -56,6 +70,8 @@ void NetManager::init(BleConfigServer* bleServer) {
                 if (num == _currentClient) {
                     _tcpStreaming = false;
                     _currentClient = 255;
+                    // 强制断开，清理库内部状态（防止僵尸连接）
+                    _tcpServer.disconnect(num);
                     // 限频：至少30秒间隔才打印断连日志
                     if (millis() - _lastDisconnectLogMs > 30000) {
                         LOG("[TCP] Client %d disconnected\n", num);
@@ -96,6 +112,8 @@ void NetManager::tick() {
         
         // 重置连接状态，等待下一轮 tick 检测连接结果
         _wifiConnected = false;
+        _dhcpWaitDone = false;  // 重置DHCP等待状态
+        _dhcpGotIp = false;     // 重置DHCP IP获取状态
         _eepromCredsTried = true;  // 防止 EEPROM 凭证覆盖新凭证
         _wifiRetryTimer = millis();
         return;  // 跳过后续逻辑，等下一轮 tick
@@ -131,14 +149,17 @@ void NetManager::tick() {
                         WiFi.SSID());
                     _bleServer->updateIpAddress(ipJson);
                     _bleServer->resumeAdvertising();
+                    _bleIpPushPending = false;  // 清除pending
                     LOG("[WIFI] IP已通知手机，BLE广播已恢复\n");
                 }
                 syncTime();
             } else if (millis() - _dhcpWaitStart >= 5000) {
-                // DHCP超时，IP仍为0.0.0.0 — 不设_wifiConnected=true，允许后续重试
-                LOG("[WIFI] DHCP timeout, IP still 0.0.0.0, will retry\n");
+                // DHCP超时，断开重连以触发新的DHCP握手
+                LOG("[WIFI] DHCP timeout, IP still 0.0.0.0, disconnect and retry\n");
+                WiFi.disconnect();
                 _wifiConnected = false;
                 _dhcpWaitDone = false;
+                _dhcpGotIp = false;
                 _wifiRetryTimer = millis();
                 // [FIX#8] WiFi连接失败后恢复BLE广播，允许重新配网
                 if (_bleServer) {
@@ -210,6 +231,8 @@ bool NetManager::_tryConnectWifi() {
         if (gStorage.LoadWifiCredentials(&savedCreds) && savedCreds.isValid) {
             LOG("[WIFI] Auto-connecting from EEPROM: %s\n", savedCreds.ssid);
             WiFi.begin(savedCreds.ssid, savedCreds.pass);
+            _dhcpWaitDone = false;
+            _dhcpGotIp = false;
             return true;
         }
         LOG("[WIFI] No saved credentials in EEPROM\n");
@@ -234,6 +257,8 @@ bool NetManager::_tryConnectWifi() {
         // 重置重试计时器，立即开始重连流程
         _wifiRetryTimer = millis();
         _wifiConnected = false;
+        _dhcpWaitDone = false;
+        _dhcpGotIp = false;
         return true;
     }
     return false;
@@ -243,6 +268,9 @@ void NetManager::connectWifi(const char* ssid, const char* pass) {
     LOG("[WIFI] Manual connect request: %s\n", ssid);
     WiFi.begin(ssid, pass);
     _wifiRetryTimer = millis();
+    _wifiConnected = false;
+    _dhcpWaitDone = false;
+    _dhcpGotIp = false;
 }
 
 void NetManager::disconnectWifi() {
@@ -316,7 +344,7 @@ void NetManager::sendData(float rms, float mdf, float fatigue, uint8_t quality, 
     if (isCalibMode) {
         // 校准模式：加type+phase让小程序onCalibData匹配
         written = snprintf(_tcpJsonBuf, sizeof(_tcpJsonBuf),
-                 "{\"type\":\"calib_data\",\"phase\":\"%s\",\"ts\":%lu%03u,\"r\":%.2f,\"m\":%.1f}",
+                 "{\"type\":\"calib_data\",\"phase\":\"%s\",\"ts\":%lu%03u,\"rms\":%.2f,\"mdf\":%.1f}",
                  calibPhase ? calibPhase : "REST", sec, ms, rms, mdf);
     } else {
         written = snprintf(_tcpJsonBuf, sizeof(_tcpJsonBuf),
@@ -393,4 +421,24 @@ void NetManager::sendJsonTo(uint8_t clientNum, const char* json, int seq) {
 
 void NetManager::setCommandCallback(void (*callback)(uint8_t, const char*)) {
     _cmdCallback = callback;
+}
+
+// BLE重连时主动推送当前WiFi IP给小程序
+void NetManager::_pushWifiIp() {
+    if (!_bleServer) return;
+    if (!_wifiConnected) {
+        LOG("[NET] BLE请求IP，但WiFi未连接，标记pending\n");
+        _bleIpPushPending = true;
+        return;
+    }
+    char ipJson[BLE_IP_CHAR_MAX_LEN];
+    snprintf(ipJson, sizeof(ipJson),
+        "{\"ip\":\"%s\",\"ssid\":\"%s\",\"deviceId\":\"sEMG\"}",
+        WiFi.localIP().toString().c_str(), WiFi.SSID());
+    bool ok = _bleServer->updateIpAddress(ipJson);
+    if (ok) {
+        LOG("[NET] BLE重连 → 已推送当前IP: %s\n", WiFi.localIP().toString().c_str());
+    } else {
+        LOG("[NET] BLE重连 → IP推送失败\n");
+    }
 }

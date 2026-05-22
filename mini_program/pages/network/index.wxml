@@ -58,6 +58,9 @@
             <text class="ip-value">IP：{{deviceIp}}</text>
           </view>
         </view>
+        <view class="ip-right">
+          <view class="btn-ip-refresh" bindtap="onRefreshIp">刷新</view>
+        </view>
       </view>
 
       <!-- 手机网络信息 -->
@@ -71,7 +74,7 @@
         </view>
       </view>
 
-      <!-- 三个按钮一排（统一样式，gap 12rpx） -->
+      <!-- 三个按钮一排 -->
       <view class="btn-group-three">
         <view
           class="btn-item btn-scan {{isScanning || bleConnected ? 'btn-disabled' : ''}}"

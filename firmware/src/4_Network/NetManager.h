@@ -30,6 +30,7 @@ public:
 
     void connectWifi(const char* ssid, const char* pass);
     void disconnectWifi();
+    void _pushWifiIp();
     void syncTime();
 
 private:
@@ -45,9 +46,11 @@ private:
     bool _dhcpWaitDone;          // DHCP等待是否完成
     uint32_t _dhcpWaitStart;     // DHCP等待开始时间
     bool _dhcpGotIp;             // DHCP是否成功获取IP
+    bool _bleIpPushPending;       // BLE连接时WiFi未连，等连上后推送IP
     bool _ntpPending;              // NTP请求已发送，等待响应
     uint32_t _ntpRequestTime;      // NTP请求发送时间（超时检测+重试间隔）
     uint32_t _lastDisconnectLogMs; // 上次TCP断连日志时间（限频）
+    uint32_t _lastZombieCheck;    // 上次僵尸连接检测时间（30秒间隔）
 
     int _autoSeq;  // [v3.9.14] 自动seq回传（-1=禁用）
 

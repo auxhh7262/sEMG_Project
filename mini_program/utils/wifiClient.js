@@ -8,8 +8,8 @@ let _isConnected = false
 let _isConnecting = false
 let _reconnectTimer = null
 let _reconnectCount = 0
-let _maxReconnect = 5
-let _reconnectInterval = 2000
+let _maxReconnect = 3
+let _reconnectInterval = 2000  // 2秒间隔
 let _onMessageCallback = null
 let _onStatusChangeCallback = null
 let _onErrorCallback = null
@@ -19,7 +19,9 @@ let _currentPort = 8888
 let _heartbeatTimer = null
 let _lastPongTime = 0
 let _heartbeatInterval = 5000
+let _idleTimeout = 60000  // idle模式60秒无数据才判定断开（设备不发数据）
 let _timeoutTimer = null
+let _handshakeTimeout = null
 let _connectionTimeout = 10000
 let _ipReceived = false
 let _waitingForWifi = false
@@ -34,7 +36,7 @@ function _updateStatus(status, message) {
   _isConnected = status === 'connected'
   _isConnecting = status === 'connecting'
   if (_onStatusChangeCallback && typeof _onStatusChangeCallback === 'function') {
-    wx.nextTick(() => { _onStatusChangeCallback(status, message) })
+    try { _onStatusChangeCallback(status, message) } catch (e) {}
   }
 }
 
@@ -48,24 +50,32 @@ function _cleanup() {
   if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null }
   if (_timeoutTimer) { clearTimeout(_timeoutTimer); _timeoutTimer = null }
   if (_wifiRecoveryTimer) { clearTimeout(_wifiRecoveryTimer); _wifiRecoveryTimer = null }
-  _lastPongTime = 0; _reconnectCount = 0; _isConnecting = false; _ipReceived = false; _waitingForWifi = false
+  _lastPongTime = 0; _isConnecting = false; _ipReceived = false; _waitingForWifi = false
+  // 注意：_reconnectCount 在 _cleanup 中不重置，由 connect(新IP) 时重置
   // 清理 Promise 引用
   _connectResolve = null; _connectReject = null
 }
 
-// 心跳保活
+// 心跳保活：仅用于检测设备断电等静默断连
+// 原理：每5秒检查一次，30秒无任何数据往来才判定断开
 function _setupHeartbeat() {
-  console.log('[TCP] _setupHeartbeat — 启动心跳，间隔', _heartbeatInterval, 'ms')
+  console.log('[TCP] _setupHeartbeat — 启动心跳，间隔', _heartbeatInterval, 'ms，超时', _idleTimeout, 'ms')
   if (_heartbeatTimer) { clearInterval(_heartbeatTimer) }
   _heartbeatTimer = setInterval(() => {
     if (_socket && _isConnected && _heartbeatEnabled) {
       const now = Date.now()
-      if (_lastPongTime > 0 && now - _lastPongTime > _heartbeatInterval * 2) {
-        console.warn('[TCP] 心跳超时，断开连接')
+      // 数据流模式：超时检测（设备应持续发数据）
+      if (_idleTimeout === 0 || (_lastPongTime > 0 && now - _lastPongTime > _idleTimeout)) {
+        console.warn('[TCP] 心跳超时（' + Math.round((now - _lastPongTime) / 1000) + 's无数据），断开连接')
         _handleDisconnect(); return
       }
+      // 发ping保活 + 检测TCP连接是否存活
+      // idle模式：只靠ping发送成功/失败判断TCP存活，不做超时检测
+      // 数据流模式：ping保活 + 超时检测
       try {
-        _socket.send({ data: JSON.stringify({ cmd: 'ping' }), fail: () => { _handleDisconnect() } })
+        _socket.send({ data: JSON.stringify({ cmd: 'ping' }) })
+        // idle模式下ping发送成功，更新_lastPongTime防止后续切到数据流模式立即超时
+        if (_idleTimeout >= 60000) _lastPongTime = Date.now()
       } catch (e) { _handleDisconnect() }
     }
   }, _heartbeatInterval)
@@ -85,24 +95,26 @@ let _notifyListeners = function(rawData) {
 function _bindSocketEvents() {
   _socket.onOpen(() => {
     console.log('[TCP] onOpen — WebSocket 连接成功')
-    clearTimeout(_timeoutTimer); _timeoutTimer = null; _isConnecting = false; _isConnected = true; _reconnectCount = 0
+    clearTimeout(_timeoutTimer); _timeoutTimer = null; _isConnecting = false; _isConnected = true
+    // 注意：不在此处重置_reconnectCount，由connect()在新目标时重置
     _updateStatus('connected', '连接成功'); _lastPongTime = Date.now()
+    // idle模式也启用心跳（用长超时），否则设备断电时TCP静默死亡无onClose
+    // 数据流模式由enableHeartbeat()缩短超时
+    _heartbeatEnabled = true; _setupHeartbeat()
     // 成功时 resolve Promise
     if (_connectResolve) { _connectResolve(true); _connectResolve = null; _connectReject = null }
-    console.log('[TCP] onOpen — 发送 handshake')
-    setTimeout(() => {
-      if (_socket && _isConnected) {
-        _socket.send({ data: JSON.stringify({ cmd: 'handshake', type: 'client', version: 'V1.0' }) })
-      }
-    }, 500)
+    console.log('[TCP] onOpen — 连接建立，启用心跳检测')
+    // 不发送验证命令，TCP已连上即可，心跳负责检测断连
+    // 避免query_cz等命令触发handleQueryCZ导致栈溢出死机
   })
 
   _socket.onMessage((res) => {
+    _lastPongTime = Date.now()  // 收到任何消息都视为设备存活
     try {
       const rawData = typeof res.data === 'string' ? res.data : ''
       if (!rawData) return
       if (rawData.startsWith('{')) {
-        // console.log('[TCP] onMessage — JSON 数据:', rawData.substring(0, 100)) // 按需开启
+                console.log('[TCP] onMessage JSON:', rawData.substring(0, 120));
         _notifyListeners(rawData)
       } else if (rawData.includes('pong') || rawData.includes('ack')) {
         _lastPongTime = Date.now()
@@ -128,11 +140,13 @@ function _bindSocketEvents() {
 
 // 处理断开连接
 function _handleDisconnect() {
-  console.log('[TCP] _handleDisconnect — 处理断开，当前 connected=' + _isConnected + ', connecting=' + _isConnecting)
-  if (_isConnected || _isConnecting) _updateStatus('disconnected', '连接断开')
+  if (!_isConnected && !_isConnecting) return  // 防止重复处理
+  console.log('[TCP] 连接断开，IP:', _currentIP, '已重连:', _reconnectCount, '次')
+  _updateStatus('disconnected', '连接断开')
   _isConnected = false; _isConnecting = false
   if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null }
   if (_timeoutTimer) { clearTimeout(_timeoutTimer); _timeoutTimer = null }
+  if (_handshakeTimeout) { clearTimeout(_handshakeTimeout); _handshakeTimeout = null }
   if (_wifiRecoveryTimer) { clearTimeout(_wifiRecoveryTimer); _wifiRecoveryTimer = null }
   if (_socket) { try { _socket.close() } catch (e) {} _socket = null }
   _ipReceived = false
@@ -143,20 +157,29 @@ function _handleDisconnect() {
 
 // 自动重连
 function _tryReconnect() {
-  console.log('[TCP] _tryReconnect — 重连次数:', _reconnectCount, '/', _maxReconnect)
-  if (_reconnectCount >= _maxReconnect || !_currentIP || _isConnecting) {
-    console.log('[TCP] _tryReconnect — 跳过重连（达到上限/无IP/正在连接）')
+  if (_reconnectCount >= _maxReconnect) {
+    console.log('[TCP] 重连已达上限 (' + _maxReconnect + '次)，停止重连，IP:', _currentIP)
+    // 通知全局状态回调
+    _updateStatus('reconnect_failed', '重连失败，设备可能已断电')
+    return
+  }
+  if (!_currentIP) {
+    console.log('[TCP] 无目标IP，跳过重连')
+    return
+  }
+  if (_isConnecting) {
+    console.log('[TCP] 正在连接中，跳过重连')
     return
   }
   _reconnectCount++
-  const delay = _reconnectInterval * Math.min(_reconnectCount, 3)
-  console.log('[TCP] _tryReconnect — 将在', delay, 'ms 后重连')
-  _reconnectTimer = setTimeout(() => { connect(_currentIP, _currentPort) }, delay)
+  console.log('[TCP] 自动重连 ' + _reconnectCount + '/' + _maxReconnect + '，' + _reconnectInterval + 'ms后连接 ' + _currentIP)
+  _reconnectTimer = setTimeout(() => { connect(_currentIP, _currentPort) }, _reconnectInterval)
 }
 
 // 连接WebSocket
 function connect(ip, port) {
-  console.log('[TCP] connect() — 尝试连接', ip, port || 8888)
+  const isNewTarget = (ip !== _currentIP || (port || 8888) !== _currentPort)
+  console.log('[TCP] connect() — 尝试连接', ip, port || 8888, isNewTarget ? '(新目标)' : '(重连)')
   if (_isConnecting || _isConnected) {
     console.log('[TCP] connect() — 跳过，当前状态: connecting=' + _isConnecting + ', connected=' + _isConnected)
     return Promise.resolve(_isConnected)
@@ -164,7 +187,10 @@ function connect(ip, port) {
   _cleanup()
   _currentIP = ip
   _currentPort = port || 8888
-  _isConnecting = true; _reconnectCount = 0; _heartbeatEnabled = false
+  _isConnecting = true
+  // 只有新目标IP才重置重连计数，同IP重连保留计数
+  if (isNewTarget) { _reconnectCount = 0 }
+  _heartbeatEnabled = false
 
   let safeIp = _currentIP.replace(/^ws:\/\/\/?/i, '').replace(/:\d+$/i, '')
   let url = `ws://${safeIp}:${_currentPort}`
@@ -218,9 +244,10 @@ function setCallbacks(onMessage, onStatusChange, onError, onIpSent) {
 }
 
 // 心跳开关
-function enableHeartbeat(enabled) {
-  console.log('[TCP] enableHeartbeat —', enabled)
+function enableHeartbeat(enabled, idleTimeout) {
+  console.log('[TCP] enableHeartbeat —', enabled, 'timeout:', idleTimeout || 'default')
   _heartbeatEnabled = enabled
+  if (idleTimeout) _idleTimeout = idleTimeout
   if (enabled && _isConnected) _setupHeartbeat()
   else if (_heartbeatTimer) { clearInterval(_heartbeatTimer); _heartbeatTimer = null }
 }
@@ -267,8 +294,8 @@ function _routeTypedMessage(rawData) {
   let data
   try { data = JSON.parse(rawData) } catch (e) { return false }
 
-  // 实时数据: { type: "data", rms, mdf, fatigue }
-  if (data.type === 'data' && _realtimeDataListeners.length > 0) {
+  // 实时数据: { type: "data", rms, mdf, fatigue } 或 { ts, r, m, f, q, a }
+  if ((data.type === 'data' || (data.ts !== undefined && data.r !== undefined)) && _realtimeDataListeners.length > 0) {
     _realtimeDataListeners.forEach(fn => { try { fn(data) } catch (e) {} })
     return true
   }

@@ -1,4 +1,4 @@
-// pages/realtime/index.js
+﻿// pages/realtime/index.js
 const app = getApp();
 const { log, warn, error } = require('../../utils/logger');
 const wifiClient = require('../../utils/wifiClient');
@@ -114,6 +114,7 @@ Page({
 
   // [v3.9.12] 停止数据流
   _stopStream() {
+    wifiClient.enableHeartbeat(true, 60000);  // 恢复idle模式60秒超时
     if (this._realtimeHandler) {
       wifiClient.offRealtimeData(this._realtimeHandler);
       this._realtimeHandler = null;
@@ -125,6 +126,7 @@ Page({
 
   _resumeStream() {
     log('[realtime] _resumeStream() — 恢复数据流');
+    wifiClient.enableHeartbeat(true, 45000);  // 数据流模式启用心跳，45秒超时（覆盖校准~26s+缓冲）
 
     // 清理旧监听器
     if (this._realtimeHandler) {
@@ -144,17 +146,24 @@ Page({
       const loadUser = user ? wifiClient.sendCmd('load_user', { slot: user.slot }).catch(() => {}) : Promise.resolve();
       loadUser.then(() => {
         wifiClient.sendCmd('query_cz', {}).then(status => {
-          if (status) {
-            const alg = status.has_curve ? '个性化曲线' : '默认MDF';
-            this.setData({ algorithm: alg });
-            log('[realtime] 算法标识:', alg, 'has_curve:', status.has_curve);
+          // realtime页绝不触发校准；无校准时algorithm标记为无校准，WXML显示提示
+          if (status.has_curve) {
+            this.setData({ algorithm: '个性化曲线', hasPersonalCurve: true });
+            log('[realtime] 个性化曲线已激活 has_curve:', status.has_curve);
+          } else if (status.ref_mdf && status.ref_mdf > 0) {
+            this.setData({ algorithm: '默认MDF下降率', hasPersonalCurve: false });
+            log('[realtime] 无个性化曲线，使用默认MDF下降率 ref_mdf:', status.ref_mdf);
+          } else {
+            // A区无校准数据，仅显示原始RMS/MDF，疲劳值无效
+            this.setData({ algorithm: '无校准', hasPersonalCurve: false });
+            log('[realtime] A区无校准数据，请先在「肌电校准」页面完成校准');
           }
         }).catch(() => {});
       });
     }
-
-    wifiClient.sendCmd('start').catch(() => {});
   },
+
+
 
   // ──── 3. 校准参数（本地缓存，备选） ────
 

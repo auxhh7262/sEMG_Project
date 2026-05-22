@@ -8,7 +8,7 @@ function getCurrentUser() {
 }
 
 function setCurrentUser(user) {
-  if (!user || !user.slot !== undefined) return;
+  if (!user || user.slot === undefined) return;
   wx.setStorageSync('current_user', user);
 }
 

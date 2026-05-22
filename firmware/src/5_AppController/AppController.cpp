@@ -28,6 +28,7 @@ AppController::AppController(
 }
 
 void AppController::init(void) {
+
     // [v3.9.12] 开机时从 A区 加载校准数据到 SignalProcessor（支持个性化曲线）
     PersonalCalibData_t calib = {0};
     if (_storageMgr->GetPersonalCalib(&calib) && calib.calib_timestamp > 0) {
@@ -36,8 +37,12 @@ void AppController::init(void) {
                                      calib.peak_rms_mv,
                                      calib.has_curve, calib.curve_coef);
         LOG("[CTRL] Boot: loaded calib from A区 has_curve=%d\n", calib.has_curve);
+        // [修复] 有校准数据时，开机直接进入MONITORING（跳过IDLE校准流程）
+        _stateMgr->transitionTo(ST_MONITORING);
+        LOG("[CTRL] Boot: auto enter MONITORING\n");
     } else {
-        LOG("[CTRL] Boot: no calib in A区\n");
+        LOG("[CTRL] Boot: no calib in A区, entering MONITORING anyway\n");
+        _stateMgr->transitionTo(ST_MONITORING);
     }
     LOG("[CTRL] AppController initialized.\n");
 }
@@ -297,7 +302,13 @@ void AppController::_handleDbFeatureState(void) {
 // ==================== JSON 命令处理实现 ====================
 
 void AppController::handleQueryCZ(uint8_t clientNum, uint32_t startTs, uint32_t endTs) {
-    CZone_DataPoint_t points[100];
+    // 堆分配避免栈溢出（100点×12字节=1200字节，加上StaticJsonDoc 1024+buf 1024=3.3KB超过RA4M1默认2KB栈）
+    CZone_DataPoint_t* points = new CZone_DataPoint_t[100];
+    if (!points) {
+        char buf[] = "{\"cmd\":\"cz_data\",\"points\":[],\"has_curve\":0,\"error\":\"nomem\"}";
+        gNetManager.sendJsonTo(clientNum, buf);
+        return;
+    }
     uint16_t count = 0;
     uint32_t nextTs = 0;
     
@@ -305,6 +316,7 @@ void AppController::handleQueryCZ(uint8_t clientNum, uint32_t startTs, uint32_t 
     
     if (!ok || count == 0) {
         PersonalCalibData_t calib = {0};         bool hc = _storageMgr->GetPersonalCalib(&calib) && calib.has_curve;         char buf[128];         snprintf(buf, sizeof(buf), "{\"cmd\":\"cz_data\",\"points\":[],\"has_curve\":%d}", hc ? 1 : 0);         gNetManager.sendJsonTo(clientNum, buf);
+        delete[] points;
         return;
     }
     
@@ -337,6 +349,7 @@ void AppController::handleQueryCZ(uint8_t clientNum, uint32_t startTs, uint32_t 
         serializeJson(doc, buf, sizeof(buf));
         gNetManager.sendJsonTo(clientNum, buf);
     }
+    delete[] points;
 }
 
 void AppController::handleSaveRecord(uint8_t clientNum, JsonObject doc) {
@@ -671,16 +684,26 @@ void AppController::handleRawPhaseDone(uint8_t clientNum) {
 // ==================== [v3.9.14] 校准结果命令 ====================
 
 void AppController::handleGetCalibResult(uint8_t clientNum, int seq) {
-    const CalibData_t& calib = _calibMgr->getData();
-    bool valid = _calibMgr->validateResult();
+    // [DEBUG] 立即打印，无缓冲
+    Serial.println("GCR_ENTER");
+    Serial.println(clientNum);
+    Serial.println(seq);
+    LOG("[CTRL] handleGetCalibResult: client=%d seq=%d\n", clientNum, seq);
 
-    char buf[256];
+    const CalibData_t& calib = _calibMgr->getData();
+    LOG("[CTRL] calib data: rest_rms=%.2f ref_rms=%.2f rest_mdf=%.1f ref_mdf=%.1f peak_rms=%.2f\n",
+        calib.rest_rms, calib.ref_rms, calib.rest_mdf, calib.ref_mdf, calib.peak_rms);
+
+    bool valid = _calibMgr->validateResult();
+    LOG("[CTRL] validateResult=%d\n", valid);
+
+    char buf[512];
     snprintf(buf, sizeof(buf),
         "{\"cmd\":\"calib_result\",\"ok\":true,\"seq\":%d,\"rest_rms\":%.2f,\"max_rms\":%.2f,\"rest_mdf\":%.1f,\"max_mdf\":%.1f,\"peak_rms\":%.2f,\"valid\":%d}",
         seq, calib.rest_rms, calib.ref_rms, calib.rest_mdf, calib.ref_mdf, calib.peak_rms, valid ? 1 : 0);
+    LOG("[CTRL] sendJsonTo start, buflen=%d\n", (int)strlen(buf));
     _netMgr->sendJsonTo(clientNum, buf);
-    LOG("[CTRL] Sent calib_result: RMS(%.2f/%.2f) MDF(%.1f/%.1f) valid=%d\n",
-        calib.rest_rms, calib.ref_rms, calib.rest_mdf, calib.ref_mdf, valid);
+    LOG("[CTRL] sendJsonTo done\n");
 }
 
 void AppController::handleSaveCalib(uint8_t clientNum, int seq) {

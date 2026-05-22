@@ -42,6 +42,10 @@ Page({
   },
 
   onShow() {
+
+
+
+    console.log('[calibrate] onShow');
     this.setData({ connected: wifiClient.isConnected() });
     this._refreshUser();
   },

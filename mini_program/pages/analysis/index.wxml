@@ -25,7 +25,10 @@
 
   <view class="date-range-bar">
     <text class="date-range-text">{{startDate}} ~ {{endDate}}</text>
-    <view class="refresh-btn" bindtap="onRefresh"><text>刷新</text></view>
+    <view class="btn-group">
+      <view class="query-btn" bindtap="onQuery"><text>查询</text></view>
+      <view class="refresh-btn" bindtap="onRefresh"><text>刷新</text></view>
+    </view>
   </view>
 
   <!-- ========== 需要连接才能显示的数据区 ========== -->

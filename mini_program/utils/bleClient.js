@@ -42,8 +42,30 @@ const ble = {
     console.log(logEntry);
   },
 
-  async scanAndConnect(devicePrefix = 'sEMG_') {
+  async scanAndConnect(devicePrefix = 'sEMG_', maxRetries = 2) {
     this._addDebugLog(`开始扫描设备，前缀: ${devicePrefix}`);
+    let lastError = null;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      if (attempt > 0) {
+        this._addDebugLog(`BLE连接重试 ${attempt}/${maxRetries}...`);
+        await new Promise(r => setTimeout(r, 1000));  // 重试间隔1秒
+      }
+      try {
+        const device = await this._scanOnce(devicePrefix);
+        const result = await this._connectGATT(device);
+        return result;
+      } catch (err) {
+        lastError = err;
+        this._addDebugLog(`BLE尝试 ${attempt + 1} 失败: ${err.message || err}`);
+        // 扫描失败不重试（没设备），连接失败才重试
+        if (err.message === 'BLE_SCAN_TIMEOUT' || err.errCode === 10001) throw err;
+        try { this.close(); } catch (e) {}
+      }
+    }
+    throw lastError || new Error('BLE_CONNECT_FAILED');
+  },
+
+  async _scanOnce(devicePrefix = 'sEMG_') {
     this._resetState();
     return new Promise((resolve, reject) => {
       let foundDevice = null;
@@ -69,7 +91,7 @@ const ble = {
         },
         fail: (err) => { this._addDebugLog(`❌ 打开蓝牙适配器失败: ${JSON.stringify(err)}`); clearTimeout(scanTimer); reject(err); }
       });
-    }).then(device => this._connectGATT(device));  // 保留 device.name 和 device.RSSI
+    });
   },
 
   _resetState() {

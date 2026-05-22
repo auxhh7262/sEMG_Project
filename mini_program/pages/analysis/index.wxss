@@ -91,6 +91,19 @@
   color: #aaa;
 }
 
+.btn-group {
+  display: flex;
+  gap: 8px;
+}
+
+.query-btn {
+  padding: 4px 10px;
+  background: #07c160;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #fff;
+}
+
 /* ========== Loading / Empty ========== */
 .loading-state {
   display: flex;

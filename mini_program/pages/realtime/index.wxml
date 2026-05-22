@@ -12,7 +12,13 @@
     <text class="algo-value">{{algorithm}}</text>
   </view>
 
-  <!-- ===== 数据区（表头+指标说明始终可见） ===== -->
+  <!-- ===== 无校准提示 ===== -->
+  <view class="conn-warning" wx:if="{{connected && algorithm === '无校准'}}">
+    <text class="conn-warning-text">⚠️ 无校准数据，仅显示原始RMS/MDF，疲劳值仅供参考</text>
+    <text class="conn-warning-text" style="margin-top:8rpx;">请前往「肌电校准」完成校准以获得个性化疲劳分析</text>
+  </view>
+
+  <!-- ====<!-- ===== 数据区（表头+指标说明始终可见） ===== -->
   <view class="data-section">
 
     <!-- 标题行：列名 + 单位 -->
