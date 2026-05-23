@@ -37,13 +37,15 @@ void AppController::init(void) {
                                      calib.peak_rms_mv,
                                      calib.has_curve, calib.curve_coef);
         LOG("[CTRL] Boot: loaded calib from A区 has_curve=%d\n", calib.has_curve);
-        // [修复] 有校准数据时，开机直接进入MONITORING（跳过IDLE校准流程）
-        _stateMgr->transitionTo(ST_MONITORING);
-        LOG("[CTRL] Boot: auto enter MONITORING\n");
     } else {
-        LOG("[CTRL] Boot: no calib in A区, entering MONITORING anyway\n");
-        _stateMgr->transitionTo(ST_MONITORING);
+        LOG("[CTRL] Boot: no calib in A区\n");
     }
+
+    // [修复 v3.9.15] 开机默认进入 IDLE，等待小程序发 start_stream 再进入 MONITORING
+    // 避免一连接就发数据（用户可能还在网络配置页面）
+    _stateMgr->transitionTo(ST_IDLE);
+    LOG("[CTRL] Boot: entering IDLE, waiting for start_stream command\n");
+
     LOG("[CTRL] AppController initialized.\n");
 }
 
@@ -161,6 +163,24 @@ void AppController::onCommandReceived(AppCommand_t cmd) {
             }
             break;
         }
+        case CMD_START_STREAM: {
+            // [新增] 启动纯数据流（不校准，直接进入MONITORING）
+            SystemState_t st = _stateMgr->getState();
+            if (st == ST_MONITORING) {
+                LOG("[CTRL] Already in monitoring (streaming)\n");
+                break;
+            }
+            if (st == ST_IDLE) {
+                LOG("[CTRL] Starting streaming (no calibration)\n");
+                _stateMgr->transitionTo(ST_MONITORING);
+                break;
+            }
+            // 其他状态：先停止当前操作，再进入MONITORING
+            LOG("[CTRL] Stopping current operation, entering monitoring\n");
+            _stateMgr->transitionTo(ST_IDLE);
+            _stateMgr->transitionTo(ST_MONITORING);
+            break;
+        }
         default: {
             break;
         }
@@ -169,6 +189,8 @@ void AppController::onCommandReceived(AppCommand_t cmd) {
 
 void AppController::_handleIdleState(void) {
     // 空闲状态：等待指令
+    // [修复 v3.9.15] 进入 IDLE 时停止数据流
+    _netMgr->stopStreaming();
 }
 
 void AppController::_handleCalibRestState(void) {

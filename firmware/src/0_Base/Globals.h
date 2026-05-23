@@ -79,7 +79,8 @@ typedef enum {
     CMD_LIST_CURVES,         // 查询匹配条件的群体曲线列表
     CMD_GEN_PERSONAL_CURVE, // 生成个人曲线（A区）
     CMD_GET_CURVE,           // 获取单条曲线详情
-    CMD_GET_CALIB_RESULT    // 获取当前校准结果
+    CMD_GET_CALIB_RESULT,  // 获取当前校准结果
+    CMD_START_STREAM       // 启动纯数据流（不校准，直接进入MONITORING）
 } AppCommand_t;
 
 // 6. WiFi 凭证结构体

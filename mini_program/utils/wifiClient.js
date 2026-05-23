@@ -17,9 +17,10 @@ let _onIpSentCallback = null
 let _currentIP = ''
 let _currentPort = 8888
 let _heartbeatTimer = null
-let _lastPongTime = 0
+let _lastPingTime = 0  // [v3.9.15] 最后一次发 ping 的时间
+let _lastPongTime = 0  // [v3.9.15] 最后一次收到 pong 的时间
 let _heartbeatInterval = 5000
-let _idleTimeout = 60000  // idle模式60秒无数据才判定断开（设备不发数据）
+let _idleTimeout = 60000  // idle模式60秒无pong才判定断开
 let _timeoutTimer = null
 let _handshakeTimeout = null
 let _connectionTimeout = 10000
@@ -64,18 +65,15 @@ function _setupHeartbeat() {
   _heartbeatTimer = setInterval(() => {
     if (_socket && _isConnected && _heartbeatEnabled) {
       const now = Date.now()
-      // 数据流模式：超时检测（设备应持续发数据）
-      if (_idleTimeout === 0 || (_lastPongTime > 0 && now - _lastPongTime > _idleTimeout)) {
-        console.warn('[TCP] 心跳超时（' + Math.round((now - _lastPongTime) / 1000) + 's无数据），断开连接')
+      // [v3.9.15] 只检测 ping/pong：发了 ping 但超时没收到 pong → 断开
+      if (_lastPingTime > 0 && now - _lastPongTime > _idleTimeout && _lastPongTime < _lastPingTime) {
+        console.warn('[TCP] 心跳超时（' + Math.round((now - _lastPingTime) / 1000) + 's无pong），断开连接')
         _handleDisconnect(); return
       }
-      // 发ping保活 + 检测TCP连接是否存活
-      // idle模式：只靠ping发送成功/失败判断TCP存活，不做超时检测
-      // 数据流模式：ping保活 + 超时检测
+      // 发 ping 保活
       try {
         _socket.send({ data: JSON.stringify({ cmd: 'ping' }) })
-        // idle模式下ping发送成功，更新_lastPongTime防止后续切到数据流模式立即超时
-        if (_idleTimeout >= 60000) _lastPongTime = Date.now()
+        _lastPingTime = Date.now()  // [v3.9.15] 记录 ping 发送时间
       } catch (e) { _handleDisconnect() }
     }
   }, _heartbeatInterval)
@@ -109,13 +107,14 @@ function _bindSocketEvents() {
   })
 
   _socket.onMessage((res) => {
-    _lastPongTime = Date.now()  // 收到任何消息都视为设备存活
     try {
       const rawData = typeof res.data === 'string' ? res.data : ''
       if (!rawData) return
       if (rawData.startsWith('{')) {
                 console.log('[TCP] onMessage JSON:', rawData.substring(0, 120));
         _notifyListeners(rawData)
+        // 按类型路由到专用监听器（onRealtimeData/offRealtimeData）
+        _routeTypedMessage(rawData)
       } else if (rawData.includes('pong') || rawData.includes('ack')) {
         _lastPongTime = Date.now()
         // console.log('[TCP] onMessage — 收到 pong/ack')
@@ -293,6 +292,11 @@ const _CMD_TIMEOUT_MS = 5000
 function _routeTypedMessage(rawData) {
   let data
   try { data = JSON.parse(rawData) } catch (e) { return false }
+
+  // [v3.9.15] pong 响应：更新 _lastPongTime
+  if (data.cmd === 'pong') {
+    _lastPongTime = Date.now()
+  }
 
   // 实时数据: { type: "data", rms, mdf, fatigue } 或 { ts, r, m, f, q, a }
   if ((data.type === 'data' || (data.ts !== undefined && data.r !== undefined)) && _realtimeDataListeners.length > 0) {

@@ -38,9 +38,22 @@ NetManager::NetManager()
       _ntpRequestTime(0),
       _lastDisconnectLogMs(0),
       _lastZombieCheck(0),
-      _autoSeq(-1) {
+      _autoSeq(-1),
+      _streamingRequested(false) {
     memset(_ntpPacketBuffer, 0, sizeof(_ntpPacketBuffer));
     memset(_tcpJsonBuf, 0, sizeof(_tcpJsonBuf));
+}
+
+// [修复 v3.9.15] 收到 start_stream 后调用，允许发送数据流
+void NetManager::startStreaming() {
+    _streamingRequested = true;
+    LOG("[NET] Streaming requested, will send data\n");
+}
+
+// [修复 v3.9.15] 断开连接或进入 IDLE 时调用，停止发送数据流
+void NetManager::stopStreaming() {
+    _streamingRequested = false;
+    LOG("[NET] Streaming stopped\n");
 }
 
 void NetManager::init(BleConfigServer* bleServer) {
@@ -69,6 +82,7 @@ void NetManager::init(BleConfigServer* bleServer) {
                 // 避免 Client 1（内部重连/GC）断开影响 Client 0 的数据流
                 if (num == _currentClient) {
                     _tcpStreaming = false;
+                    _streamingRequested = false;  // [修复 v3.9.15] 断开后禁止发送数据
                     _currentClient = 255;
                     // 强制断开，清理库内部状态（防止僵尸连接）
                     _tcpServer.disconnect(num);
@@ -334,7 +348,8 @@ void NetManager::_getTimestamp(uint32_t &sec, uint16_t &ms) {
 
 // [B1-4-fix] JSON 缓冲区从128字节扩展到192字节，防止 snprintf 截断
 void NetManager::sendData(float rms, float mdf, float fatigue, uint8_t quality, float activation, bool isCalibMode, const char* calibPhase) {
-    if (!_tcpStreaming) return;
+    // [修复 v3.9.15] 只有 TCP 已连接 且 已收到 start_stream 才发送数据
+    if (!_tcpStreaming || !_streamingRequested) return;
     
     uint32_t sec;
     uint16_t ms;

@@ -143,11 +143,18 @@ void ProtocolHandler::handleJsonCommand(uint8_t clientNum, const char* json) {
     }
     
     // [v3.9.14] 提取seq用于命令-响应匹配（兼容int和string类型）
+    // [修复 v3.9.16] ArduinoJson v6 中 JSON 字符串可能无法被 is<const char*>() 识别，添加 String 转换兜底
     int seq = -1;
     if (doc["seq"].is<int>()) {
         seq = doc["seq"].as<int>();
     } else if (doc["seq"].is<const char*>()) {
         seq = atoi(doc["seq"].as<const char*>());
+    } else {
+        // ArduinoJson v6 兼容：转 String 再转 int
+        String seqStr = doc["seq"];
+        if (seqStr.length() > 0) {
+            seq = seqStr.toInt();
+        }
     }
     
     LOG("[PROTO] cmd='%s' seq=%d\n", cmd, seq);
@@ -280,6 +287,36 @@ void ProtocolHandler::handleJsonCommand(uint8_t clientNum, const char* json) {
             gNetManager.sendJsonTo(clientNum, resp);
         }
     }
+    // [新增] 启动纯数据流（不校准，直接进入MONITORING状态）
+    else if (strcmp(cmd, "start_stream") == 0) {
+        LOG("[PROTO] start_stream received, state=%d, seq=%d\n", (int)gState.getState(), seq);
+        SystemState_t st = gState.getState();
+        if (st == ST_MONITORING) {
+            // 已在数据流中，发送确认（带seq）
+            if (seq >= 0) {
+                char ack[64];
+                snprintf(ack, sizeof(ack), "{\"cmd\":\"start_stream\",\"status\":\"already_streaming\",\"seq\":%d}", seq);
+                gNetManager.sendJsonTo(clientNum, ack);
+            } else {
+                gNetManager.sendJsonTo(clientNum, "{\"cmd\":\"status\",\"state\":\"monitoring\"}");
+            }
+        } else if (st == ST_IDLE) {
+            // IDLE状态：直接进入MONITORING（不校准）
+            gAppController.onCommandReceived(CMD_START_STREAM);
+            // [修复 v3.9.15] 标记允许发送数据流
+            gNetManager.startStreaming();
+            // 回传 ack 响应含 seq
+            if (seq >= 0) {
+                char ack[64];
+                snprintf(ack, sizeof(ack), "{\"cmd\":\"start_stream\",\"status\":\"ok\",\"seq\":%d}", seq);
+                gNetManager.sendJsonTo(clientNum, ack);
+            }
+        } else {
+            char resp[64];
+            snprintf(resp, sizeof(resp), "{\"cmd\":\"status\",\"state\":\"%d\"}", (int)st);
+            gNetManager.sendJsonTo(clientNum, resp);
+        }
+    }
     else if (strcmp(cmd, "stop") == 0) {
         gAppController.onCommandReceived(CMD_STOP);
     }
@@ -316,6 +353,21 @@ void ProtocolHandler::handleJsonCommand(uint8_t clientNum, const char* json) {
             gNetManager.sendJsonTo(clientNum, "{\"cmd\":\"user_loaded\",\"ok\":false,\"err\":\"not_found\"}");
         }
     }
+    // [v3.9.15] ping/pong 心跳
+    else if (strcmp(cmd, "ping") == 0) {
+        // 回传 pong（带seq）
+        if (seq >= 0) {
+            char pong[64];
+            snprintf(pong, sizeof(pong), "{\"cmd\":\"pong\",\"seq\":%d,\"ts\":%lu}", seq, millis());
+            gNetManager.sendJsonTo(clientNum, pong);
+        } else {
+            gNetManager.sendJsonTo(clientNum, "{\"cmd\":\"pong\"}");
+        }
+        // 清除自动seq（防止影响其他命令）
+        gNetManager.setAutoSeq(-1);
+        return;
+    }
+
     // [v3.9.14] 清除自动seq
     gNetManager.setAutoSeq(-1);
 }

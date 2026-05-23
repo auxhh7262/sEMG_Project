@@ -28,6 +28,11 @@ public:
     bool isWifiConnected() const;
     bool isTcpClientConnected() const;
 
+    // [修复 v3.9.15] 数据流控制（只有收到 start_stream 后才允许发送）
+    void startStreaming();   // 收到 start_stream 后调用
+    void stopStreaming();    // 断开连接或进入 IDLE 时调用
+    bool isStreamingRequested() const { return _streamingRequested; }
+
     void connectWifi(const char* ssid, const char* pass);
     void disconnectWifi();
     void _pushWifiIp();
@@ -64,6 +69,7 @@ private:
     bool _tcpStreaming;
     uint8_t _currentClient;  // 当前连接的客户端编号
     char _tcpJsonBuf[192];  // [B1-4-fix] 128→192，防止JSON截断
+    bool _streamingRequested;  // [修复 v3.9.15] 只有收到 start_stream 后才允许发送数据
 
     void _getTimestamp(uint32_t &sec, uint16_t &ms);
 };

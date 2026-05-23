@@ -114,7 +114,7 @@ Page({
 
   // [v3.9.12] 停止数据流
   _stopStream() {
-    wifiClient.enableHeartbeat(true, 60000);  // 恢复idle模式60秒超时
+    wifiClient.enableHeartbeat(true, 120000);  // 恢复idle模式120秒超时（避免误判）
     if (this._realtimeHandler) {
       wifiClient.offRealtimeData(this._realtimeHandler);
       this._realtimeHandler = null;
@@ -126,7 +126,7 @@ Page({
 
   _resumeStream() {
     log('[realtime] _resumeStream() — 恢复数据流');
-    wifiClient.enableHeartbeat(true, 45000);  // 数据流模式启用心跳，45秒超时（覆盖校准~26s+缓冲）
+    wifiClient.enableHeartbeat(true, 120000);  // 数据流模式启用心跳，120秒超时（避免误判）
 
     // 清理旧监听器
     if (this._realtimeHandler) {
@@ -161,6 +161,13 @@ Page({
         }).catch(() => {});
       });
     }
+
+    // [修复] 发送 start_stream 命令（不校准，纯数据流）
+    wifiClient.sendCmd('start_stream', {}).then(() => {
+      log('[realtime] ✅ 已发送 start_stream 命令');
+    }).catch((e) => {
+      warn('[realtime] 发送 start_stream 命令失败:', e);
+    });
   },
 
 
