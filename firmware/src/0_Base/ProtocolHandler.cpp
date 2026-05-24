@@ -1,17 +1,14 @@
-﻿#include "ProtocolHandler.h"
+#include "ProtocolHandler.h"
 #include "Logger.h"
 #include "Board.h"
 #include <ArduinoJson.h>
-#include <Arduino.h>  // for NVIC_SystemReset
-
-// 引入完整类定义（而非前向声明）
+#include <Arduino.h>
 #include "5_AppController/AppController.h"
 #include "3_Storage/StorageManager.h"
 #include "4_Network/NetManager.h"
 #include "1_Signal/SignalProcessor.h"
 #include "0_Base/SystemStateMachine.h"
 
-// 外部引用
 extern AppController gAppController;
 extern StorageManager gStorage;
 extern StateManager gState;
@@ -39,31 +36,19 @@ void ProtocolHandler::sendCalResult(bool success, float restRms, float refRms, c
     }
 }
 
-void ProtocolHandler::sendData(float rms, float fatigue) {
-    /* 占位 */
-}
+void ProtocolHandler::sendData(float rms, float fatigue) { /* 占位 */ }
+void ProtocolHandler::sendError(const char* msg) { LOG("[PROTO] Error: %s\n", msg); }
 
-void ProtocolHandler::sendError(const char* msg) {
-    LOG("[PROTO] Error: %s\n", msg);
-}
-
-// [B1-3-fix] 去除 String 堆分配，直接用字符比较
-// 单字符指令无需 String 构造和 trim()，直接比较首字符即可
 AppCommand_t ProtocolHandler::tickLocalDebug() {
     if (!SERIAL_COMM.available()) return CMD_NONE;
-
     while (SERIAL_COMM.available() > 0) {
         char c = SERIAL_COMM.read();
         if (c == '\r' || c == '\n') {
             if (_debugBufIdx > 0) {
                 _debugBuf[_debugBufIdx] = '\0';
                 _debugBufIdx = 0;
-
-                // 取首字符（忽略大小写），直接映射指令
                 char cmd = _debugBuf[0];
-                // 兼容大写
-                if (cmd >= 'A' && cmd <= 'Z') cmd += 32;  // tolower
-
+                if (cmd >= 'A' && cmd <= 'Z') cmd += 32;
                 switch (cmd) {
                     case 't': return CMD_SYNC_TIME;
                     case 'c': return CMD_START_CALIB;
@@ -77,19 +62,14 @@ AppCommand_t ProtocolHandler::tickLocalDebug() {
                     case 'i': return CMD_INJECT_SIGNAL;
                     case 'p': return CMD_SIGNAL_DIAGNOSE;
                     case 'w': {
-                        // --- WiFi 配置命令: w SSID password ---
-                        // _debugBuf 内容: "w SSID password"
-                        char* p = _debugBuf + 1;  // skip 'w'
-                        while (*p == ' ') p++;   // skip spaces
+                        char* p = _debugBuf + 1;
+                        while (*p == ' ') p++;
                         char* ssidStart = p;
-                        // find end of SSID (next space or end)
                         while (*p && *p != ' ') p++;
                         char* ssidEnd = p;
-                        while (*p == ' ') p++;   // skip spaces before password
+                        while (*p == ' ') p++;
                         char* passStart = p;
-                        // null-terminate SSID
                         *ssidEnd = '\0';
-                        // build WifiCredentials_t
                         WifiCredentials_t creds;
                         memset(&creds, 0, sizeof(creds));
                         strncpy(creds.ssid, ssidStart, 31);
@@ -104,14 +84,11 @@ AppCommand_t ProtocolHandler::tickLocalDebug() {
                         NVIC_SystemReset();
                         break;
                     }
-                    default:
-                        LOG("[PROTO] Unknown cmd: [%c]\n", cmd);
-                        break;
+                    default: LOG("[PROTO] Unknown cmd: [%c]\n", cmd); break;
                 }
             }
             return CMD_NONE;
         }
-
         if (_debugBufIdx < sizeof(_debugBuf) - 1) {
             _debugBuf[_debugBufIdx++] = c;
         }
@@ -119,38 +96,30 @@ AppCommand_t ProtocolHandler::tickLocalDebug() {
     return CMD_NONE;
 }
 
-void ProtocolHandler::tick() {
-    /* 占位 */
-}
-
-// ==================== JSON 命令解析 ====================
+void ProtocolHandler::tick() { /* 占位 */ }
 
 void ProtocolHandler::handleJsonCommand(uint8_t clientNum, const char* json) {
     LOG("[PROTO] RX JSON: %s\n", json);
-    
-    StaticJsonDocument<512> doc;
+
+    DynamicJsonDocument doc(1024);
     DeserializationError err = deserializeJson(doc, json);
-    
     if (err) {
         LOG("[PROTO] JSON parse error: %s\n", err.c_str());
         return;
     }
-    
+
     const char* cmd = doc["cmd"];
     if (!cmd) {
         LOG("[PROTO] No cmd field\n");
         return;
     }
-    
-    // [v3.9.14] 提取seq用于命令-响应匹配（兼容int和string类型）
-    // [修复 v3.9.16] ArduinoJson v6 中 JSON 字符串可能无法被 is<const char*>() 识别，添加 String 转换兜底
+
     int seq = -1;
     if (doc["seq"].is<int>()) {
         seq = doc["seq"].as<int>();
     } else if (doc["seq"].is<const char*>()) {
         seq = atoi(doc["seq"].as<const char*>());
     } else {
-        // ArduinoJson v6 兼容：转 String 再转 int
         String seqStr = doc["seq"];
         if (seqStr.length() > 0) {
             seq = seqStr.toInt();
@@ -158,216 +127,138 @@ void ProtocolHandler::handleJsonCommand(uint8_t clientNum, const char* json) {
     }
     
     LOG("[PROTO] cmd='%s' seq=%d\n", cmd, seq);
-    gNetManager.setAutoSeq(seq);
-    
-    // 查询 C 区
-    if (strcmp(cmd, "query_cz") == 0) {
+    // 🚨 彻底删除 gNetManager.setAutoSeq(seq); 防止全局污染
+
+    if (strcmp(cmd, "start_stream") == 0) {
+        LOG("[PROTO] start_stream received, state=%d, seq=%d\n", (int)gState.getState(), seq);
+        SystemState_t st = gState.getState();
+        gNetManager.startStreaming();
+        if (st == ST_IDLE || st == ST_CALIB_DONE) {
+            gAppController.onCommandReceived(CMD_START_STREAM);
+        }
+        if (seq >= 0) {
+            char ack[128];
+            snprintf(ack, sizeof(ack), "{\"cmd\":\"start_stream\",\"status\":\"ok\",\"seq\":%d}", seq);
+            gNetManager.sendJsonTo(clientNum, ack);
+        }
+    } else if (strcmp(cmd, "stop") == 0) {
+        gNetManager.stopStreaming();
+        gAppController.onCommandReceived(CMD_STOP);
+        if (seq >= 0) {
+            char ack[64];
+            snprintf(ack, sizeof(ack), "{\"cmd\":\"stop\",\"status\":\"ok\",\"seq\":%d}", seq);
+            gNetManager.sendJsonTo(clientNum, ack);
+        }
+    } else if (strcmp(cmd, "query_cz") == 0) {
         uint32_t startTs = doc["start_ts"] | 0;
         uint32_t endTs = doc["end_ts"] | 0xFFFFFFFF;
-        
         gAppController.handleQueryCZ(clientNum, startTs, endTs);
-    }
-    // 保存建库记录
-    else if (strcmp(cmd, "save_record") == 0) {
+        // 🌟 终极保底：强制补发 ACK，防止 AppController 内部漏发 seq 导致小程序死锁
+        if (seq >= 0) {
+            char ack[128];
+            snprintf(ack, sizeof(ack), "{\"cmd\":\"query_cz\",\"status\":\"ok\",\"seq\":%d}", seq);
+            gNetManager.sendJsonTo(clientNum, ack);
+        }
+    } else if (strcmp(cmd, "save_record") == 0) {
         gAppController.handleSaveRecord(clientNum, doc.as<JsonObject>());
-    }
-    // 列出 B 区记录
-    else if (strcmp(cmd, "list_records") == 0) {
+        if (seq >= 0) {
+            char ack[128];
+            snprintf(ack, sizeof(ack), "{\"cmd\":\"save_record\",\"status\":\"ok\",\"seq\":%d}", seq);
+            gNetManager.sendJsonTo(clientNum, ack);
+        }
+    } else if (strcmp(cmd, "list_records") == 0) {
         gAppController.handleListRecords(clientNum);
-    }
-    // 删除 B 区指定槽位
-    else if (strcmp(cmd, "delete_record") == 0) {
+        if (seq >= 0) {
+            char ack[128];
+            snprintf(ack, sizeof(ack), "{\"cmd\":\"list_records\",\"status\":\"ok\",\"seq\":%d}", seq);
+            gNetManager.sendJsonTo(clientNum, ack);
+        }
+    } else if (strcmp(cmd, "delete_record") == 0) {
         uint32_t slotAddr = doc["slot"] | 0;
         gAppController.handleDeleteRecord(clientNum, slotAddr);
-    }
-    // 查询匹配条件的群体曲线列表
-    else if (strcmp(cmd, "list_curves") == 0) {
+        if (seq >= 0) {
+            char ack[128];
+            snprintf(ack, sizeof(ack), "{\"cmd\":\"delete_record\",\"status\":\"ok\",\"seq\":%d}", seq);
+            gNetManager.sendJsonTo(clientNum, ack);
+        }
+    } else if (strcmp(cmd, "list_curves") == 0) {
         uint8_t gender = doc["gender"] | 0;
         uint8_t handedness = doc["handedness"] | 0;
         uint8_t age = doc["age"] | 0;
         gAppController.handleListCurves(clientNum, gender, handedness, age);
-    }
-    // 保存个人曲线（小程序曲线拟合流程：群体曲线 + 当前校准基准 → A 区）
-    else if (strcmp(cmd, "save_curve") == 0) {
-        uint8_t curve_id = doc["curve_id"] | 0;
-        // 从RAM缓存读取当前校准数据作为基准
-        PersonalCalibData_t calib = {0};
-        if (!gStorage.GetPersonalCalib(&calib)) {
-            gNetManager.sendJsonTo(clientNum, "{\"cmd\":\"curve_save_result\",\"ok\":false,\"err\":\"no_calib_data\"}");
-        } else {
-            float baseline_rms = calib.rest_rms_mv;
-            float baseline_mdf = calib.rest_mdf_hz;
-            bool ok = gStorage.GeneratePersonalCurve(curve_id, baseline_rms, baseline_mdf);
-            if (ok) {
-                // 设置 has_curve 标志并回写 Flash
-                PersonalCalibData_t updated = {0};
-                gStorage.GetPersonalCalib(&updated);   // 读取最新的（含曲线系数）
-                updated.has_curve = 1;                  // [v3.9.12] 标记曲线已拟合
-                gStorage.UpdatePersonalCalib(&updated);
-                // [v3.9.12] 同步 SignalProcessor（激活个性化曲线算法）
-                gSignal.setCalibration(updated.rest_rms_mv, updated.max_rms_mv,
-                    updated.rest_mdf_hz, updated.max_mdf_hz, updated.peak_rms_mv,
-                    updated.has_curve, updated.curve_coef);
-                gNetManager.sendJsonTo(clientNum, "{\"cmd\":\"curve_save_result\",\"ok\":true,\"curve_id\":1,\"has_curve\":1}");
-            } else {
-                gNetManager.sendJsonTo(clientNum, "{\"cmd\":\"curve_save_result\",\"ok\":false,\"err\":\"gen_failed\"}");
-            }
+        if (seq >= 0) {
+            char ack[128];
+            snprintf(ack, sizeof(ack), "{\"cmd\":\"list_curves\",\"status\":\"ok\",\"seq\":%d}", seq);
+            gNetManager.sendJsonTo(clientNum, ack);
         }
-    }
-    // 生成个人曲线（群体曲线 + 个人校准基准 → A 区）
-    else if (strcmp(cmd, "gen_personal_curve") == 0) {
-        uint8_t bcurve_id = doc["bcurve_id"] | 0;
-        float baseline_rms = doc["baseline_rms"] | 0.0f;
-        float baseline_mdf = doc["baseline_mdf"] | 0.0f;
-        gAppController.handleGenPersonalCurve(clientNum, bcurve_id, baseline_rms, baseline_mdf);
-    }
-    // 获取单条曲线详情
-    else if (strcmp(cmd, "get_curve") == 0) {
-        uint8_t curveId = doc["curve_id"] | 0;
-        gAppController.handleGetCurve(clientNum, curveId);
-    }
-    // 【新增】建库特征采集开始
-    else if (strcmp(cmd, "start_db_feature") == 0) {
-        gAppController.handleStartDbFeature(clientNum, doc.as<JsonObject>());
-    }
-    // 【新增】原始波形阶段采集
-    else if (strcmp(cmd, "capture_raw_phase") == 0) {
-        gAppController.handleCaptureRawPhase(clientNum, doc.as<JsonObject>());
-    }
-    // 【新增】建库记录保存完成
-    else if (strcmp(cmd, "raw_phase_done") == 0) {
-        gAppController.handleRawPhaseDone(clientNum);
-    }
-    // 【新增】疲劳阶段标记（采集中即时标记）
-    else if (strcmp(cmd, "db_mark") == 0) {
-        gAppController.handleDbMark(clientNum, doc.as<JsonObject>());
-    }
-    // 保存校准（[v3.9.14] 改为从RAM读取，不再需要小程序传参）
-    else if (strcmp(cmd, "save_calib") == 0) {
+    } else if (strcmp(cmd, "load_user") == 0) {
+        uint8_t slot = doc["slot"] | 0;
+        char userId[16] = {0};
+        char name[32] = {0};
+        uint8_t age = 0, gender = 0, handedness = 0;
+        if (gStorage.LoadUserProfile(slot, userId, name, &age, &gender, &handedness)) {
+            userId[sizeof(userId)-1] = '\0';
+            name[sizeof(name)-1] = '\0';
+            char buf[256];
+            if (seq >= 0) {
+                snprintf(buf, sizeof(buf), "{\"cmd\":\"user_loaded\",\"ok\":true,\"slot\":%d,\"user_id\":\"%s\",\"name\":\"%s\",\"age\":%d,\"gender\":%d,\"handedness\":%d,\"seq\":%d}", slot, userId, name, age, gender, handedness, seq);
+            } else {
+                snprintf(buf, sizeof(buf), "{\"cmd\":\"user_loaded\",\"ok\":true,\"slot\":%d,\"user_id\":\"%s\",\"name\":\"%s\",\"age\":%d,\"gender\":%d,\"handedness\":%d}", slot, userId, name, age, gender, handedness);
+            }
+            gNetManager.sendJsonTo(clientNum, buf);
+        } else {
+            char buf[128];
+            if (seq >= 0) {
+                snprintf(buf, sizeof(buf), "{\"cmd\":\"user_loaded\",\"ok\":false,\"has_curve\":false,\"err\":\"slot_empty\",\"seq\":%d}", seq);
+            } else {
+                snprintf(buf, sizeof(buf), "{\"cmd\":\"user_loaded\",\"ok\":false,\"has_curve\":false,\"err\":\"slot_empty\"}");
+            }
+            gNetManager.sendJsonTo(clientNum, buf);
+        }
+    } else if (strcmp(cmd, "save_calib") == 0) {
         gAppController.handleSaveCalib(clientNum, seq);
-    }
-    // [v3.9.14] 获取校准结果
-    else if (strcmp(cmd, "get_calib_result") == 0) {
+    } else if (strcmp(cmd, "get_calib_result") == 0) {
         LOG("[PROTO] about to call handleGetCalibResult client=%d seq=%d\n", clientNum, seq);
-        Serial.println("PROTO_BEFORE_GCR");
         gAppController.handleGetCalibResult(clientNum, seq);
-        Serial.println("PROTO_AFTER_GCR"); LOG("[PROTO] handleGetCalibResult returned\n");
-    }
-    // 启动校准（[v3.9.14] 支持 phase 参数：REST 或 MAX，并回传 seq）
-    else if (strcmp(cmd, "start_calib") == 0) {
+    } else if (strcmp(cmd, "start_calib") == 0) {
         const char* phase = doc["phase"] | "REST";
         if (strcmp(phase, "MAX") == 0) {
             gAppController.onCommandReceived(CMD_START_CALIB_MAX);
         } else {
             gAppController.onCommandReceived(CMD_START_CALIB);
         }
-        // [v3.9.14] 回传 ack 响应含 seq
         if (seq >= 0) {
             char ack[64];
             snprintf(ack, sizeof(ack), "{\"cmd\":\"start_calib\",\"status\":\"ok\",\"seq\":%d,\"phase\":\"%s\"}", seq, phase);
             gNetManager.sendJsonTo(clientNum, ack);
         }
-    }
-    // 启动/恢复数据流（兼容旧命令：IDLE时启动校准，MONITORING时恢复流）
-    else if (strcmp(cmd, "start") == 0) {
-        SystemState_t st = gState.getState();
-        if (st == ST_MONITORING) {
-            // 已在监控中，发送确认（小程序onShow时重连后发start）
-            gNetManager.sendJsonTo(clientNum, "{\"cmd\":\"status\",\"state\":\"monitoring\"}");
-        } else if (st == ST_IDLE) {
-            // IDLE状态：启动校准流程（校准完成后自动进入MONITORING）
-            gAppController.onCommandReceived(CMD_START_CALIB);
-        } else if (st == ST_CALIB_DONE) {
-            // [修复] CALIB_DONE：校准刚完成，直接保存并进入MONITORING
-            gAppController.handleSaveCalib(clientNum, seq);
-        } else {
-            // 其他状态（CALIB_REST/MAX/DB_FEATURE等）：忽略，回复当前状态
-            char resp[64];
-            snprintf(resp, sizeof(resp), "{\"cmd\":\"status\",\"state\":\"%d\"}", (int)st);
-            gNetManager.sendJsonTo(clientNum, resp);
-        }
-    }
-    // [新增] 启动纯数据流（不校准，直接进入MONITORING状态）
-    else if (strcmp(cmd, "start_stream") == 0) {
-        LOG("[PROTO] start_stream received, state=%d, seq=%d\n", (int)gState.getState(), seq);
-        SystemState_t st = gState.getState();
-        if (st == ST_MONITORING) {
-            // 已在数据流中，发送确认（带seq）
-            if (seq >= 0) {
-                char ack[64];
-                snprintf(ack, sizeof(ack), "{\"cmd\":\"start_stream\",\"status\":\"already_streaming\",\"seq\":%d}", seq);
-                gNetManager.sendJsonTo(clientNum, ack);
-            } else {
-                gNetManager.sendJsonTo(clientNum, "{\"cmd\":\"status\",\"state\":\"monitoring\"}");
-            }
-        } else if (st == ST_IDLE) {
-            // IDLE状态：直接进入MONITORING（不校准）
-            gAppController.onCommandReceived(CMD_START_STREAM);
-            // [修复 v3.9.15] 标记允许发送数据流
-            gNetManager.startStreaming();
-            // 回传 ack 响应含 seq
-            if (seq >= 0) {
-                char ack[64];
-                snprintf(ack, sizeof(ack), "{\"cmd\":\"start_stream\",\"status\":\"ok\",\"seq\":%d}", seq);
-                gNetManager.sendJsonTo(clientNum, ack);
-            }
-        } else {
-            char resp[64];
-            snprintf(resp, sizeof(resp), "{\"cmd\":\"status\",\"state\":\"%d\"}", (int)st);
-            gNetManager.sendJsonTo(clientNum, resp);
-        }
-    }
-    else if (strcmp(cmd, "stop") == 0) {
-        gAppController.onCommandReceived(CMD_STOP);
-    }
-    // [v3.9.13] 保存用户信息到A区
-    else if (strcmp(cmd, "save_user") == 0) {
-        const char* userId = doc["user_id"] | "";
-        const char* name = doc["name"] | "";
-        uint8_t age = doc["age"] | 0;
-        uint8_t gender = doc["gender"] | 0;        // 1=男, 2=女
-        uint8_t handedness = doc["handedness"] | 0; // 1=左手, 2=右手
-        uint8_t slot = doc["slot"] | 0;             // 槽位0或1
-
-        if (gStorage.SaveUserProfile(slot, userId, name, age, gender, handedness)) {
-            char buf[128];
-            snprintf(buf, sizeof(buf), "{\"cmd\":\"user_saved\",\"ok\":true,\"slot\":%d}", slot);
-            gNetManager.sendJsonTo(clientNum, buf);
-        } else {
-            gNetManager.sendJsonTo(clientNum, "{\"cmd\":\"user_saved\",\"ok\":false,\"err\":\"save_failed\"}");
-        }
-    }
-    // [v3.9.13] 加载用户信息
-    else if (strcmp(cmd, "load_user") == 0) {
-        uint8_t slot = doc["slot"] | 0;
-        char userId[16], name[32];
-        uint8_t age, gender, handedness;
-
-        if (gStorage.LoadUserProfile(slot, userId, name, &age, &gender, &handedness)) {
-            char buf[256];
-            snprintf(buf, sizeof(buf),
-                "{\"cmd\":\"user_loaded\",\"ok\":true,\"slot\":%d,\"user_id\":\"%s\",\"name\":\"%s\",\"age\":%d,\"gender\":%d,\"handedness\":%d}",
-                slot, userId, name, age, gender, handedness);
-            gNetManager.sendJsonTo(clientNum, buf);
-        } else {
-            gNetManager.sendJsonTo(clientNum, "{\"cmd\":\"user_loaded\",\"ok\":false,\"err\":\"not_found\"}");
-        }
-    }
-    // [v3.9.15] ping/pong 心跳
-    else if (strcmp(cmd, "ping") == 0) {
-        // 回传 pong（带seq）
+    } else if (strcmp(cmd, "start_db_feature") == 0) {
+        gAppController.handleStartDbFeature(clientNum, doc.as<JsonObject>());
         if (seq >= 0) {
-            char pong[64];
-            snprintf(pong, sizeof(pong), "{\"cmd\":\"pong\",\"seq\":%d,\"ts\":%lu}", seq, millis());
-            gNetManager.sendJsonTo(clientNum, pong);
-        } else {
-            gNetManager.sendJsonTo(clientNum, "{\"cmd\":\"pong\"}");
+            char ack[128];
+            snprintf(ack, sizeof(ack), "{\"cmd\":\"start_db_feature\",\"status\":\"ok\",\"seq\":%d}", seq);
+            gNetManager.sendJsonTo(clientNum, ack);
         }
-        // 清除自动seq（防止影响其他命令）
-        gNetManager.setAutoSeq(-1);
-        return;
+    } else if (strcmp(cmd, "raw_phase_done") == 0) {
+        gAppController.handleRawPhaseDone(clientNum);
+        if (seq >= 0) {
+            char ack[128];
+            snprintf(ack, sizeof(ack), "{\"cmd\":\"raw_phase_done\",\"status\":\"ok\",\"seq\":%d}", seq);
+            gNetManager.sendJsonTo(clientNum, ack);
+        }
+    } else if (strcmp(cmd, "db_mark") == 0) {
+        gAppController.handleDbMark(clientNum, doc.as<JsonObject>());
+        if (seq >= 0) {
+            char ack[128];
+            snprintf(ack, sizeof(ack), "{\"cmd\":\"db_mark\",\"status\":\"ok\",\"seq\":%d}", seq);
+            gNetManager.sendJsonTo(clientNum, ack);
+        }
+    } else {
+        LOG("[PROTO] Unknown cmd: %s\n", cmd);
+        if (seq >= 0) {
+            char ack[64];
+            snprintf(ack, sizeof(ack), "{\"cmd\":\"error\",\"err\":\"unknown_cmd\",\"seq\":%d}", seq);
+            gNetManager.sendJsonTo(clientNum, ack);
+        }
     }
-
-    // [v3.9.14] 清除自动seq
-    gNetManager.setAutoSeq(-1);
 }

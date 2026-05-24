@@ -1,1 +1,319 @@
-=== Mini Log Server Started 2026-05-21T13:42:25.045466 ===
+=== Mini Log Server Started 2026-05-23T20:12:07.095764 ===
+[20:13:21 GMT+0800 (CST)] [LOG] [PING] 真机日志连通性测试
+[20:13:21 GMT+0800 (CST)] [LOG] [设置] 尝试静默WiFi连接: 192.168.137.244 8888
+[20:13:21 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[20:13:21 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:13:21 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:13:50 GMT+0800 (CST)] [LOG] [realtime] onLoad() — 实时监控页加载
+[20:13:50 GMT+0800 (CST)] [LOG] [realtime] WiFi已连接，恢复数据流
+[20:13:50 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[20:13:50 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[20:13:50 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[20:13:55 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[20:13:55 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[20:13:55 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[20:13:55 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:13:55 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[20:13:57 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[20:13:57 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[20:13:57 GMT+0800 (CST)] [LOG] [realtime] WiFi已连接，恢复数据流
+[20:13:57 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[20:14:02 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[20:14:22 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[20:14:22 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[20:14:22 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[20:14:22 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:14:25 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[20:14:25 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[20:14:25 GMT+0800 (CST)] [LOG] [realtime] WiFi已连接，恢复数据流
+[20:14:25 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[20:14:30 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[20:14:50 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[20:14:50 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[20:14:50 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[20:14:50 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:14:50 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[20:14:50 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[20:14:50 GMT+0800 (CST)] [LOG] [realtime] WiFi已连接，恢复数据流
+[20:14:50 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[20:14:52 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[20:14:53 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: realtime → realtime
+[20:14:53 GMT+0800 (CST)] [LOG] [realtime] WiFi已连接，恢复数据流
+[20:14:53 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[20:14:53 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[20:14:54 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[20:14:55 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[20:14:56 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: realtime → realtime
+[20:14:56 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[20:14:56 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[20:14:56 GMT+0800 (CST)] [LOG] [realtime] WiFi已连接，恢复数据流
+[20:14:57 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[20:14:57 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[20:14:57 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[20:14:57 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:14:58 GMT+0800 (CST)] [LOG] [realtime] WiFi已连接，恢复数据流
+[20:14:58 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[20:14:58 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[20:14:58 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[20:14:58 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[20:15:01 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[20:15:03 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[20:16:32 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[20:16:32 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[20:16:32 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[20:16:32 GMT+0800 (CST)] [LOG] [设置] 尝试静默WiFi连接: 192.168.137.244 8888
+[20:16:32 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:17:25 GMT+0800 (CST)] [LOG] [设置] BLE连接成功: sEMG_0000 RSSI: -71
+[20:17:39 GMT+0800 (CST)] [LOG] [设置] 发送WiFi凭证: SSID=LT02
+[20:17:40 GMT+0800 (CST)] [LOG] [设置] 凭证已发送，等待设备响应...
+[20:18:00 GMT+0800 (CST)] [LOG] [设置] 发送WiFi凭证: SSID=LT02
+[20:18:01 GMT+0800 (CST)] [LOG] [设置] 凭证已发送，等待设备响应...
+[20:18:43 GMT+0800 (CST)] [LOG] [设置] 发送WiFi凭证: SSID=LT02
+[20:18:44 GMT+0800 (CST)] [LOG] [设置] 凭证已发送，等待设备响应...
+[20:19:09 GMT+0800 (CST)] [LOG] [设置] BLE连接已断开
+[20:29:10] [LOG] [设置] 无缓存IP，等待用户手动配网
+[20:29:10] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[20:29:10] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[20:29:10] [LOG] [设置] 无缓存IP，等待用户手动配网
+[20:29:10] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[20:29:10] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[20:30:23] [LOG] [设置] 无缓存IP，等待用户手动配网
+[20:30:23] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[20:30:23] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[20:30:23] [LOG] [设置] 无缓存IP，等待用户手动配网
+[20:30:23] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[20:30:23] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[20:33:35] [LOG] [PING] 真机日志连通性测试
+[20:33:36] [LOG] [设置] 无缓存IP，等待用户手动配网
+[20:33:36] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[20:33:36] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[20:33:36] [LOG] [设置] 无缓存IP，等待用户手动配网
+[20:33:36] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[20:33:36] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[20:33:40 GMT+0800 (CST)] [LOG] [设置] 配网流程进行中，不重置状态，当前: 4
+[20:33:40 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:34:02 GMT+0800 (CST)] [LOG] [PING] 真机日志连通性测试
+[20:34:02 GMT+0800 (CST)] [LOG] [设置] 无缓存IP，等待用户手动配网
+[20:34:02 GMT+0800 (CST)] [LOG] [realtime] onLoad() — 实时监控页加载
+[20:34:02 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[20:34:02 GMT+0800 (CST)] [WARN] [realtime] 无缓存IP，显示未连接
+[20:34:02 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[20:34:02 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:34:02 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:34:03 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[20:34:03 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[20:34:03 GMT+0800 (CST)] [LOG] [设置] 无缓存IP，等待用户手动配网
+[20:34:03 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:34:22 GMT+0800 (CST)] [LOG] [设置] BLE连接成功: sEMG_0000 RSSI: -60
+[20:34:23 GMT+0800 (CST)] [LOG] [设置] 收到设备IP: 192.168.137.244 SSID: null
+[20:34:23 GMT+0800 (CST)] [LOG] [设置] 旧TCP已强制断开，稍后用新IP重连: 192.168.137.244 8888
+[20:35:24 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[20:35:24 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[20:35:24 GMT+0800 (CST)] [LOG] [realtime] WiFi未连接，主动连接: 192.168.137.244 8888
+[20:35:25 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[20:35:25 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[20:35:25 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[20:35:25 GMT+0800 (CST)] [LOG] [设置] 尝试静默WiFi连接: 192.168.137.244 8888
+[20:35:25 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:39:02 GMT+0800 (CST)] [LOG] [设置] BLE连接已断开
+[20:39:13 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[20:39:13 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[20:39:13 GMT+0800 (CST)] [LOG] [realtime] WiFi未连接，主动连接: 192.168.137.244 8888
+[20:39:15 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[20:39:15 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[20:39:15 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[20:39:15 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:39:15 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[20:39:15 GMT+0800 (CST)] [LOG] [realtime] WiFi连接成功，恢复数据流
+[20:39:19 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[20:39:19 GMT+0800 (CST)] [LOG] [realtime] WiFi已连接，恢复数据流
+[20:39:19 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[20:39:19 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[20:39:20 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[20:39:24 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[20:40:08 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[20:40:08 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[20:40:08 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[20:40:08 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:40:13 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[20:40:13 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[20:40:13 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[20:40:13 GMT+0800 (CST)] [LOG] [realtime] WiFi已连接，恢复数据流
+[20:40:18 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[20:43:06 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[20:43:06 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[20:43:06 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[20:43:06 GMT+0800 (CST)] [LOG] [设置] 尝试静默WiFi连接: 192.168.137.244 8888
+[20:43:06 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[20:43:10 GMT+0800 (CST)] [LOG] [realtime] WiFi已连接，恢复数据流
+[20:43:10 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[20:43:10 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[20:43:10 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[20:43:15 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[20:47:39 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[21:00:34 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[21:00:34 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: realtime → realtime
+[21:00:34 GMT+0800 (CST)] [LOG] [realtime] WiFi未连接，主动连接: 192.168.137.244 8888
+[21:00:36 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[21:01:10 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[21:01:10 GMT+0800 (CST)] [LOG] [PING] 真机日志连通性测试
+[21:01:10 GMT+0800 (CST)] [LOG] [设置] 尝试静默WiFi连接: 192.168.137.244 8888
+[21:01:10 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:01:10 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:01:33 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[21:01:33 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[21:01:33 GMT+0800 (CST)] [LOG] [realtime] WiFi已连接，恢复数据流
+[21:01:33 GMT+0800 (CST)] [LOG] [realtime] onLoad() — 实时监控页加载
+[21:01:33 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[21:01:38 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[21:06:33 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[21:07:18 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[21:07:18 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: realtime → realtime
+[21:07:18 GMT+0800 (CST)] [LOG] [realtime] WiFi未连接，主动连接: 192.168.137.244 8888
+[21:07:26 GMT+0800 (CST)] [LOG] [realtime] WiFi连接成功，恢复数据流
+[21:07:26 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[21:07:31 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[21:07:34 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[21:07:34 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[21:07:34 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[21:07:34 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:07:38 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[21:07:38 GMT+0800 (CST)] [LOG] [realtime] WiFi已连接，恢复数据流
+[21:07:38 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[21:07:38 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[21:07:43 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[21:08:47 GMT+0800 (CST)] [LOG] [PING] 真机日志连通性测试
+[21:08:47 GMT+0800 (CST)] [LOG] [设置] 尝试静默WiFi连接: 192.168.137.244 8888
+[21:08:47 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[21:08:47 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:08:47 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:09:31 GMT+0800 (CST)] [LOG] [realtime] onLoad() — 实时监控页加载
+[21:09:31 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[21:09:31 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[21:09:31 GMT+0800 (CST)] [LOG] [realtime] WiFi未连接，主动连接: 192.168.137.244 8888
+[21:09:32 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[21:09:32 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[21:09:32 GMT+0800 (CST)] [LOG] [设置] 尝试静默WiFi连接: 192.168.137.244 8888
+[21:09:32 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[21:09:32 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:18:27] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:18:27] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:18:27] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:18:27] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:18:27] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:18:27] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:19:09] [LOG] [PING] 真机日志连通性测试
+[21:19:09] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:19:09] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:19:09] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:19:09] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:19:09] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:19:09] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:19:16] [LOG] [PING] 真机日志连通性测试
+[21:19:16] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:19:16] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:19:16] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:19:16] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:19:16] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:19:16] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:30:56 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[21:30:56 GMT+0800 (CST)] [LOG] [设置] 尝试静默WiFi连接: 192.168.137.244 8888
+[21:30:56 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:31:08] [LOG] [PING] 真机日志连通性测试
+[21:31:08] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:31:08] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:31:08] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:31:08] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:31:08] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:31:08] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:31:31 GMT+0800 (CST)] [LOG] [PING] 真机日志连通性测试
+[21:31:31 GMT+0800 (CST)] [LOG] [设置] 尝试静默WiFi连接: 192.168.137.244 8888
+[21:31:31 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[21:31:31 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:31:31 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:31:46 GMT+0800 (CST)] [LOG] [realtime] onLoad() — 实时监控页加载
+[21:31:46 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[21:31:46 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[21:31:46 GMT+0800 (CST)] [LOG] [realtime] WiFi未连接，主动连接: 192.168.137.244 8888
+[21:31:47 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[21:31:47 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[21:31:47 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[21:31:47 GMT+0800 (CST)] [LOG] [设置] 尝试静默WiFi连接: 192.168.137.244 8888
+[21:31:47 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:31:49 GMT+0800 (CST)] [WARN] [realtime] WiFi连接失败，重试
+[21:35:41] [LOG] [PING] 真机日志连通性测试
+[21:35:41] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:35:41] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:35:41] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:35:41] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:35:41] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:35:41] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:35:46] [LOG] [PING] 真机日志连通性测试
+[21:35:46] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:35:46] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:35:46] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:35:46] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:35:46] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:35:46] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:35:58 GMT+0800 (CST)] [LOG] [PING] 真机日志连通性测试
+[21:35:58 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.244 ，设备已连WiFi，无需BLE扫描
+[21:35:58 GMT+0800 (CST)] [LOG] [设置] 尝试静默WiFi连接: 192.168.137.244 8888
+[21:35:58 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:35:58 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:36:17 GMT+0800 (CST)] [LOG] [设置] 收到设备IP: 192.168.137.249 SSID: null
+[21:36:17 GMT+0800 (CST)] [LOG] [设置] 设备IP已更新（BLE重连）: 192.168.137.249
+[21:36:17 GMT+0800 (CST)] [LOG] [设置] 旧TCP已强制断开，稍后用新IP重连: 192.168.137.249 8888
+[21:36:27 GMT+0800 (CST)] [LOG] [realtime] onLoad() — 实时监控页加载
+[21:36:27 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[21:36:27 GMT+0800 (CST)] [LOG] [realtime] WiFi已连接，恢复数据流
+[21:36:27 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[21:36:27 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[21:36:32 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[21:38:17 GMT+0800 (CST)] [LOG] [设置] 尝试静默WiFi连接: 192.168.137.249 8888
+[21:38:17 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.249 ，设备已连WiFi，无需BLE扫描
+[21:38:17 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[21:38:17 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[21:38:17 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:40:04] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:40:04] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:40:04] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:40:04] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:40:04] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:40:04] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:40:11] [LOG] [PING] 真机日志连通性测试
+[21:40:11] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:40:11] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:40:11] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:40:11] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:40:11] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:40:11] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:40:28 GMT+0800 (CST)] [LOG] [PING] 真机日志连通性测试
+[21:40:28 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.249 ，设备已连WiFi，无需BLE扫描
+[21:40:28 GMT+0800 (CST)] [LOG] [设置] 尝试静默WiFi连接: 192.168.137.249 8888
+[21:40:28 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:40:28 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:41:08 GMT+0800 (CST)] [LOG] [realtime] 数据模式切换: idle → realtime
+[21:41:08 GMT+0800 (CST)] [LOG] [realtime] onShow() — Tab切换进入
+[21:41:08 GMT+0800 (CST)] [LOG] [realtime] WiFi未连接，主动连接: 192.168.137.249 8888
+[21:41:08 GMT+0800 (CST)] [LOG] [realtime] onLoad() — 实时监控页加载
+[21:41:08 GMT+0800 (CST)] [LOG] [realtime] WiFi连接成功，恢复数据流
+[21:41:08 GMT+0800 (CST)] [WARN] [realtime] 发送 start_stream 命令失败: {}
+[21:41:08 GMT+0800 (CST)] [LOG] [realtime] _resumeStream() — 恢复数据流
+[21:41:09 GMT+0800 (CST)] [LOG] [设置] 数据模式切换: realtime → idle
+[21:41:09 GMT+0800 (CST)] [LOG] [realtime] onHide() — Tab切走
+[21:41:09 GMT+0800 (CST)] [LOG] [设置] 有缓存IP: 192.168.137.249 ，设备已连WiFi，无需BLE扫描
+[21:41:09 GMT+0800 (CST)] [LOG] [设置] 尝试静默WiFi连接: 192.168.137.249 8888
+[21:41:09 GMT+0800 (CST)] [LOG] [设置] 手机WiFi: LT02
+[21:45:41] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:45:41] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:45:41] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:45:41] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:45:41] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:45:41] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:45:57] [LOG] [PING] 真机日志连通性测试
+[21:45:57] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:45:57] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:45:57] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:45:57] [LOG] [设置] 无缓存IP，等待用户手动配网
+[21:45:57] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
+[21:45:57] [WARN] [设置] 获取手机WiFi失败: getConnectedWifi:fail 开发者工具暂时不支持此 API 调试，请使用真机进行开发
