@@ -4,6 +4,7 @@ const app = getApp();
 const storage = require('../../utils/storage.js');
 const { getCurrentUser, setCurrentUser, getSlotProfile, saveSlotProfile, getAgeGroup } = storage;
 const wifiClient = require('../../utils/wifiClient.js');
+const logger = require('../../utils/logger.js');
 
 // ===================== 状态常量 =====================
 const PHASE = {
@@ -41,17 +42,71 @@ Page({
     this._refreshUser();
   },
 
-  onShow() {
+  // 状态变化处理
+  _onStatusChange(status) {
+    this.setData({ connected: status === 'connected' });
+    if (status === 'disconnected' || status === 'reconnect_failed') {
+      wx.showToast({ title: '设备连接断开', icon: 'none' });
+      this._resetCalib();
+    }
+  },
 
+  // 注册校准回调
+  _registerCalibCallbacks() {
+    if (!this._realtimeHandler) {
+      this._realtimeHandler = (data) => {
+        if (this.data.phase === PHASE.RESTING) {
+          this.setData({ liveRestRms: data.rms, liveRestMdf: data.mdf });
+        } else if (this.data.phase === PHASE.MAX_CONTRACT) {
+          this.setData({ liveMaxRms: data.rms, liveMaxMdf: data.mdf });
+        }
+      };
+      wifiClient.onRealtimeData(this._realtimeHandler);
+    }
+    
+    if (!this._calibHandler) {
+      this._calibHandler = (data) => {
+        if (data.phase === 'REST') {
+          this.setData({ liveRestRms: data.rms, liveRestMdf: data.mdf });
+        } else if (data.phase === 'MAX') {
+          this.setData({ liveMaxRms: data.rms, liveMaxMdf: data.mdf });
+        }
+      };
+      wifiClient.onCalibData(this._calibHandler);
+    }
+  },
 
+  // 取消注册
+  _unregisterCalibCallbacks() {
+    if (this._realtimeHandler) {
+      wifiClient.offRealtimeData(this._realtimeHandler);
+      this._realtimeHandler = null;
+    }
+    if (this._calibHandler) {
+      wifiClient.offCalibData(this._calibHandler);
+      this._calibHandler = null;
+    }
+  },
 
-    console.log('[calibrate] onShow');
+  onShow() { 
+    logger.log('[calibrate] onShow');
     this.setData({ connected: wifiClient.isConnected() });
     this._refreshUser();
+    
+    // ✅ 注册状态变化监听
+    wifiClient.onStatusChange(this._onStatusChange);
+    
+    // 如果校准进行中，重新注册数据回调
+    if (this.data.phase === PHASE.RESTING || this.data.phase === PHASE.MAX_CONTRACT) {
+      logger.log('[calibrate] onShow: re-registering callbacks');
+      this._registerCalibCallbacks();
+    }
   },
 
   onHide() {
-    // 不在 onHide 重置，切换 Tab 后返回保留校准进度
+    // ✅ 取消注册，防止内存泄漏
+    wifiClient.offStatusChange(this._onStatusChange);
+    this._unregisterCalibCallbacks();
   },
 
   // ===================== 工具 =====================
@@ -223,25 +278,21 @@ Page({
   // REST 阶段倒计时
   _runRestCountdown() {
     return new Promise((resolve) => {
+      this._registerCalibCallbacks();  // ✅ 注册回调
+      
       let elapsed = 0;
-      const handler = (data) => {
-        if (data.type !== 'calib_data' || data.phase !== 'REST') return;
-        this.setData({ liveRestRms: data.rms, liveRestMdf: data.mdf });
-      };
-      wifiClient.onCalibData(handler);
       const interval = setInterval(() => {
         elapsed++;
         this.setData({ countdown: REST_DURATION - elapsed });
         if (elapsed >= REST_DURATION) {
           clearInterval(interval);
-          wifiClient.offCalibData(handler);
+          this._unregisterCalibCallbacks();  // ✅ 取消注册
           // REST 完成后进入 MAX_READY 等待态
           this.setData({ phase: PHASE.MAX_READY, countdown: 0, statusText: '请握紧拳头至最大力，准备好了就点击下方按钮' });
           resolve();
         }
       }, 1000);
       this._restInterval = interval;
-      this._restHandler  = handler;
     });
   },
 
@@ -263,23 +314,19 @@ Page({
 
   _runMaxCountdown() {
     return new Promise((resolve) => {
+      this._registerCalibCallbacks();  // ✅ 注册回调
+      
       let elapsed = 0;
-      const handler = (data) => {
-        if (data.type !== 'calib_data' || data.phase !== 'MAX') return;
-        this.setData({ liveMaxRms: data.rms, liveMaxMdf: data.mdf });
-      };
-      wifiClient.onCalibData(handler);
       const interval = setInterval(() => {
         elapsed++;
         this.setData({ countdown: MAX_DURATION - elapsed });
         if (elapsed >= MAX_DURATION) {
           clearInterval(interval);
-          wifiClient.offCalibData(handler);
+          this._unregisterCalibCallbacks();  // ✅ 取消注册
           resolve();
         }
       }, 1000);
       this._maxInterval = interval;
-      this._maxHandler  = handler;
     });
   },
 
@@ -295,16 +342,29 @@ Page({
   },
 
   _validateResult(data) {
-    const { rest_rms, max_rms, rest_mdf, max_mdf } = data;
+    const { rest_rms, max_rms, rest_mdf, max_mdf, validateResult } = data;  
+    // ✅ 优先使用固件校验结果
+    if (validateResult !== undefined) {
+      const ok = validateResult === 1;
+      const rms_ok = max_rms > rest_rms * 2;
+      const mdf_ok = rest_mdf >= 20 && rest_mdf <= 200 && max_mdf >= 20 && max_mdf <= 200;
+      this.setData({ 
+        validation: { ok, rms_ok, mdf_ok, mdf_drop_pct: 0 } 
+      });
+      return;
+    }
+    
+    // 兜底：客户端校验（修正后）
     const rms_ok = max_rms > rest_rms * 2;
-    const mdf_ok = max_mdf < rest_mdf * 0.9;
-    const mdf_drop_pct = rest_mdf > 0 ? (1 - max_mdf / rest_mdf) * 100 : 0;
-    this.setData({ validation: { ok: rms_ok && mdf_ok, rms_ok, mdf_ok, mdf_drop_pct } });
+    const mdf_ok = max_mdf > rest_mdf;  // ✅ 修正：MDF上升
+    this.setData({ 
+      validation: { ok: rms_ok && mdf_ok, rms_ok, mdf_ok, mdf_drop_pct: 0 } 
+    });
   },
 
   async onConfirmResult() {
     if (!this.data.validation.ok) {
-      wx.showModal({ title: '校准失败', content: '请重新校准，确保最大收缩时MDF下降≥10%', showCancel: false }); return;
+      wx.showModal({ title: '校准失败', content: '请重新校准，确保最大收缩时RMS明显上升', showCancel: false }); return;
     }
     const { slot } = this.data.currentUser;
     try {

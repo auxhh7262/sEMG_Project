@@ -1,4 +1,4 @@
-﻿#include "AppController.h"
+#include "AppController.h"
 #include "0_Base/Logger.h"
 #include "0_Base/Board.h"
 #include "3_Storage/StorageManager.h"
@@ -39,7 +39,6 @@ void AppController::init(void)
     }
 
     _stateMgr->transitionTo(ST_IDLE);
-    _netMgr->stopStreaming(); 
     LOG("[CTRL] Boot: entering IDLE, waiting for start_stream command\n");
     LOG("[CTRL] AppController initialized.\n");
 }
@@ -75,7 +74,6 @@ void AppController::onCommandReceived(AppCommand_t cmd)
             if (st == ST_IDLE) {
                 _calibMgr->reset();
                 _calibMgr->beginPhase();
-                _netMgr->stopStreaming(); // 进入校准前确保关闭实时数据流
                 _stateMgr->transitionTo(ST_CALIB_REST);
                 _stateMgr->startCalibPhase(CALIB_REST_SEC);
                 LOG("[CTRL] Calibration started: REST phase %ds\n", CALIB_REST_SEC);
@@ -98,7 +96,6 @@ void AppController::onCommandReceived(AppCommand_t cmd)
         case CMD_STOP: {
             SystemState_t st = _stateMgr->getState();
             if (st == ST_CALIB_REST || st == ST_CALIB_WAIT || st == ST_CALIB_MAX || st == ST_CALIB_DONE || st == ST_MONITORING || st == ST_ERROR) {
-                _netMgr->stopStreaming(); // 停止数据流
                 _stateMgr->transitionTo(ST_IDLE);
                 LOG("[CTRL] Stopped, back to IDLE\n");
             }
@@ -109,7 +106,6 @@ void AppController::onCommandReceived(AppCommand_t cmd)
             _signalProc->clearCalibration();
             PersonalCalibData_t emptyData = {0};
             _storageMgr->UpdatePersonalCalib(&emptyData);
-            _netMgr->stopStreaming(); // 停止数据流
             _stateMgr->transitionTo(ST_IDLE);
             LOG("[CTRL] Calibration reset\n");
             break;
@@ -136,23 +132,11 @@ void AppController::onCommandReceived(AppCommand_t cmd)
         case CMD_START_STREAM: {
             SystemState_t st = _stateMgr->getState();
             if (st == ST_MONITORING) {
-                LOG("[CTRL] Already in monitoring (streaming)\n");
-                _netMgr->startStreaming(); // 确保开启
+                LOG("[CTRL] Already in monitoring\n");
                 break;
             }
-            if (st == ST_IDLE) {
-                LOG("[CTRL] Starting streaming (no calibration)\n");
-                // [关键修复] 先开启流，再切换状态，防止被 IDLE 轮询误关
-                _netMgr->startStreaming(); 
-                _stateMgr->transitionTo(ST_MONITORING);
-                break;
-            }
-            // 其他状态：先停止当前操作，再进入MONITORING
-            LOG("[CTRL] Stopping current operation, entering monitoring\n");
-            _netMgr->stopStreaming();
-            _stateMgr->transitionTo(ST_IDLE);
-            _netMgr->startStreaming();
             _stateMgr->transitionTo(ST_MONITORING);
+            LOG("[CTRL] Entering MONITORING\n");
             break;
         }
         default: {
@@ -163,9 +147,7 @@ void AppController::onCommandReceived(AppCommand_t cmd)
 
 void AppController::_handleIdleState(void)
 {
-    // [关键修复] 彻底移除此处的 _netMgr->stopStreaming();
-    // 流的开启和关闭必须只由 onCommandReceived (状态切换动作) 显式触发！
-    // 在 tick() 的高频循环里调用 stopStreaming 会导致与 startStreaming 的微秒级时序竞争，把刚开启的流误关！
+    // IDLE: do nothing, wait for command
 }
 
 void AppController::_handleCalibRestState(void)
@@ -223,14 +205,15 @@ void AppController::_handleMonitoringState(void)
     if (rms > 0.0f) {
         _netMgr->sendData(rms, mdf, fatigue, quality, activation);
 
-        CZone_DataPoint_t pt;
-        memset(&pt, 0, sizeof(pt));
-        pt.timestamp_ms = millis();
-        pt.rms_compressed = (uint16_t)(rms * 100.0f);
-        pt.mdf_compressed = (uint16_t)(mdf * 10.0f);
-        pt.fatigue_level = (uint8_t)(fatigue * 2.55f);
-        pt.signal_quality = quality;
-        _storageMgr->CZone_AppendDataPoint(&pt);
+        // [DISABLED] CZone Flash写入 — Flash硬件问题未解决，写入会导致卡死
+        // CZone_DataPoint_t pt;
+        // memset(&pt, 0, sizeof(pt));
+        // pt.timestamp_ms = millis();
+        // pt.rms_compressed = (uint16_t)(rms * 100.0f);
+        // pt.mdf_compressed = (uint16_t)(mdf * 10.0f);
+        // pt.fatigue_level = (uint8_t)(fatigue * 2.55f);
+        // pt.signal_quality = quality;
+        // _storageMgr->CZone_AppendDataPoint(&pt);
     }
 }
 
@@ -587,7 +570,6 @@ void AppController::handleRawPhaseDone(uint8_t clientNum)
     }
 
     bool ok = _storageMgr->BZone_EndRecord();
-    _netMgr->stopStreaming(); 
     _stateMgr->transitionTo(ST_IDLE);
 
     free(_rawPhaseBuf);
@@ -642,7 +624,6 @@ void AppController::handleSaveCalib(uint8_t clientNum, int seq)
         char err[80];
         snprintf(err, sizeof(err), "{\"cmd\":\"calib_saved\",\"ok\":false,\"seq\":%d,\"err\":\"validation_failed\"}", seq);
         _netMgr->sendJsonTo(clientNum, err);
-        _netMgr->stopStreaming(); 
         _stateMgr->transitionTo(ST_IDLE);
         return;
     }
@@ -662,8 +643,7 @@ void AppController::handleSaveCalib(uint8_t clientNum, int seq)
     _storageMgr->GetPersonalCalib(&latest);
     _signalProc->setCalibration(calib.rest_rms, calib.ref_rms, calib.rest_mdf, calib.ref_mdf, calib.peak_rms, latest.has_curve, latest.curve_coef);
 
-    // 进入监控模式，显式开启流
-    _netMgr->startStreaming(); 
+    // 进入监控模式
     _stateMgr->transitionTo(ST_MONITORING);
 
     char buf[80];

@@ -15,6 +15,11 @@ Thumbs.db
 # Logs
 logs/*.txt
 
+# Dependencies (should NOT be tracked)
+node_modules/
+firmware/node_modules/
+mini_program/node_modules/
+
 # Python cache
 __pycache__/
 *.pyc

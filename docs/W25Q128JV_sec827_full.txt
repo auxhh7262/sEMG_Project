@@ -1,0 +1,209 @@
+=== PDF Page 51 (index 50) ===
+W25Q128JV
+8.2.27 Read JEDEC ID (9Fh)
+For compatibility reasons, the W25Q128JV provides several instructions to electronically determine the
+identity of the device. The Read JEDEC ID instruction is compatible with the JEDEC standard for SPI
+compatible serial memories that was adopted in 2003. The instruction is initiated by driving the /CS pin low
+and shifting the instruction code “9Fh”. The JEDEC assigned Manufacturer ID byte for Winbond (EFh) and
+two Device ID bytes, Memory Type (ID15-ID8) and Capacity (ID7-ID0) are then shifted out on the falling
+edge of CLK with most significant bit (MSB) first as shown in Figure 43a. For memory type and capacity
+values refer to Manufacturer and Device Identification table.
+/CS
+Mode 3 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+CLK Mode 0
+Instruction (9Fh)
+DI
+(IO)
+0
+Manufacturer ID (EFh)
+DO High Impedance
+(IO)
+1
+*= MSB
+/CS
+15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 Mode 3
+CLK Mode 0
+DI
+(IO)
+0
+Memory Type ID15-8 Capacity ID7-0
+DO
+7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+(IO)
+1 * *
+Figure 43a. Read JEDEC ID Instruction
+Publication Release Date: November 23, 2017
+- 50 - Revision E
+
+=== PDF Page 52 (index 51) ===
+W25Q128JV
+8.2.28 Read SFDP Register (5Ah)
+The W25Q128JV features a 256-Byte Serial Flash Discoverable Parameter (SFDP) register that contains
+information about device configurations, available instructions and other features. The SFDP parameters
+are stored in one or more Parameter Identification (PID) tables. Currently only one PID table is specified,
+but more may be added in the future. The Read SFDP Register instruction is compatible with the SFDP
+standard initially established in 2010 for PC and other applications, as well as the JEDEC standard
+JESD216-serials that is published in 2011. Most Winbond SpiFlash Memories shipped after June 2011
+(date code 1124 and beyond) support the SFDP feature as specified in the applicable datasheet.
+The Read SFDP instruction is initiated by driving the /CS pin low and shifting the instruction code “5Ah”
+followed by a 24-bit address (A23-A0)(1) into the DI pin. Eight “dummy” clocks are also required before the
+SFDP register contents are shifted out on the falling edge of the 40th CLK with most significant bit (MSB)
+first as shown in Figure 44. For SFDP register values and descriptions, please refer to the Winbond
+Application Note for SFDP Definition Table.
+Note 1: A23-A8 = 0; A7-A0 are used to define the starting byte address for the 256-Byte SFDP Register.
+/CS
+Mode 3 0 1 2 3 4 5 6 7 8 9 10 28 29 30 31
+CLK Mode 0
+Instruction (5Ah) 24-Bit Address
+DI
+23 22 21 3 2 1 0
+(IO)
+0 *
+DO High Impedance
+(IO)
+1
+/CS
+31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55
+CLK
+Dummy Byte
+DI
+0 7 6 5 4 3 2 1 0
+(IO)
+0
+Data Out 1 Data Out 2
+DO High Impedance
+7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7
+(IO)
+1 *= MSB * *
+Figure 44. Read SFDP Register Instruction Sequence Diagram
+- 51 -
+
+=== PDF Page 53 (index 52) ===
+W25Q128JV
+8.2.29 Erase Security Registers (44h)
+The W25Q128JV offers three 256-byte Security Registers which can be erased and programmed
+individually. These registers may be used by the system manufacturers to store security and other
+important information separately from the main memory array.
+The Erase Security Register instruction is similar to the Sector Erase instruction. A Write Enable
+instruction must be executed before the device will accept the Erase Security Register Instruction (Status
+Register bit WEL must equal 1). The instruction is initiated by driving the /CS pin low and shifting the
+instruction code “44h” followed by a 24-bit address (A23-A0) to erase one of the three security registers.
+ADDRESS A23-16 A15-12 A11-8 A7-0
+Security Register #1 00h 0 0 0 1 0 0 0 0 Don’t Care
+Security Register #2 00h 0 0 1 0 0 0 0 0 Don’t Care
+Security Register #3 00h 0 0 1 1 0 0 0 0 Don’t Care
+The Erase Security Register instruction sequence is shown in Figure 45. The /CS pin must be driven high
+after the eighth bit of the last byte has been latched. If this is not done the instruction will not be executed.
+After /CS is driven high, the self-timed Erase Security Register operation will commence for a time
+duration of tSE (See AC Characteristics). While the Erase Security Register cycle is in progress, the Read
+Status Register instruction may still be accessed for checking the status of the BUSY bit. The BUSY bit is
+a 1 during the erase cycle and becomes a 0 when the cycle is finished and the device is ready to accept
+other instructions again. After the Erase Security Register cycle has finished the Write Enable Latch
+(WEL) bit in the Status Register is cleared to 0. The Security Register Lock Bits (LB3-1) in the Status
+Register-2 can be used to OTP protect the security registers. Once a lock bit is set to 1, the corresponding
+security register will be permanently locked, Erase Security Register instruction to that register will be
+ignored (Refer to section 7.1.9 for detail descriptions).
+/CS
+Mode 3 0 1 2 3 4 5 6 7 8 9 29 30 31 Mode 3
+CLK Mode 0 Mode 0
+Instruction (44h) 24-Bit Address
+DI
+23 22 2 1 0
+(IO)
+0
+*
+DO High Impedance
+(IO)
+1 *= MSB
+Figure 45. Erase Security Registers Instruction
+Publication Release Date: November 23, 2017
+- 52 - Revision E
+
+=== PDF Page 54 (index 53) ===
+W25Q128JV
+8.2.30 Program Security Registers (42h)
+The Program Security Register instruction is similar to the Page Program instruction. It allows from one
+byte to 256 bytes of security register data to be programmed at previously erased (FFh) memory locations.
+A Write Enable instruction must be executed before the device will accept the Program Security Register
+Instruction (Status Register bit WEL= 1). The instruction is initiated by driving the /CS pin low then shifting
+the instruction code “42h” followed by a 24-bit address (A23-A0) and at least one data byte, into the DI pin.
+The /CS pin must be held low for the entire length of the instruction while data is being sent to the device.
+ADDRESS A23-16 A15-12 A11-8 A7-0
+Security Register #1 00h 0 0 0 1 0 0 0 0 Byte Address
+Security Register #2 00h 0 0 1 0 0 0 0 0 Byte Address
+Security Register #3 00h 0 0 1 1 0 0 0 0 Byte Address
+The Program Security Register instruction sequence is shown in Figure 46. The Security Register Lock
+Bits (LB3-1) in the Status Register-2 can be used to OTP protect the security registers. Once a lock bit is
+set to 1, the corresponding security register will be permanently locked, Program Security Register
+instruction to that register will be ignored (See 7.1.9 for detail descriptions).
+/CS
+Mode 3 0 1 2 3 4 5 6 7 8 9 10 28 29 30 31 32 33 34 35 36 37 38 39
+CLK Mode 0
+Instruction (42h) 24-Bit Address Data Byte 1
+DI
+23 22 21 3 2 1 0 7 6 5 4 3 2 1 0
+(IO)
+0 * *
+*= MSB
+/CS
+2 3 4 5 6 7 8 9
+7 7 7 7 7 7 7 7
+39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 2 0 2 0 2 0 2 0 2 0 2 0 2 0 2 0 Mode 3
+CLK Mode 0
+Data Byte 2 Data Byte 3 Data Byte 256
+DI
+0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+(IO)
+0 * * *
+Figure 46. Program Security Registers Instruction
+- 53 -
+
+=== PDF Page 55 (index 54) ===
+W25Q128JV
+8.2.31 Read Security Registers (48h)
+The Read Security Register instruction is similar to the Fast Read instruction and allows one or more data
+bytes to be sequentially read from one of the four security registers. The instruction is initiated by driving
+the /CS pin low and then shifting the instruction code “48h” followed by a 24-bit address (A23-A0) and
+eight “dummy” clocks into the DI pin. The code and address bits are latched on the rising edge of the CLK
+pin. After the address is received, the data byte of the addressed memory location will be shifted out on
+the DO pin at the falling edge of CLK with most significant bit (MSB) first. The byte address is
+automatically incremented to the next byte address after each byte of data is shifted out. Once the byte
+address reaches the last byte of the register (byte address FFh), it will reset to address 00h, the first byte
+of the register, and continue to increment. The instruction is completed by driving /CS high. The Read
+Security Register instruction sequence is shown in Figure 47. If a Read Security Register instruction is
+issued while an Erase, Program or Write cycle is in process (BUSY=1) the instruction is ignored and will
+not have any effects on the current cycle. The Read Security Register instruction allows clock rates from
+D.C. to a maximum of FR (see AC Electrical Characteristics).
+ADDRESS A23-16 A15-12 A11-8 A7-0
+Security Register #1 00h 0 0 0 1 0 0 0 0 Byte Address
+Security Register #2 00h 0 0 1 0 0 0 0 0 Byte Address
+Security Register #3 00h 0 0 1 1 0 0 0 0 Byte Address
+/CS
+Mode 3 0 1 2 3 4 5 6 7 8 9 10 28 29 30 31
+CLK Mode 0
+Instruction (48h) 24-Bit Address
+DI
+23 22 21 3 2 1 0
+(IO)
+0 *
+DO High Impedance
+(IO)
+1
+*= MSB
+/CS
+31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55
+CLK
+Dummy Byte
+DI
+0 7 6 5 4 3 2 1 0
+(IO)
+0
+Data Out 1 Data Out 2
+DO High Impedance
+7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7
+(IO)
+1 * *
+Figure 47. Read Security Registers Instruction
+Publication Release Date: November 23, 2017
+- 54 - Revision E
+

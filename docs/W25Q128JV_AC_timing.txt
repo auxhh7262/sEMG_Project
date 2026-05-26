@@ -1,0 +1,107 @@
+=== PDF Page 63 (index 62) ===
+W25Q128JV
+9.4 DC Electrical Characteristics-
+SPEC
+PARAMETER SYMBOL CONDITIONS UNIT
+MIN TYP MAX
+Input Capacitance CIN(1) VIN = 0V(1) 6 pF
+Output Capacitance Cout(1) VOUT = 0V(1) 8 pF
+Input Leakage ILI ±2 µA
+I/O Leakage ILO ±2 µA
+/CS = VCC,
+Standby Current ICC1 10 60 µA
+VIN = GND or VCC
+/CS = VCC,
+Power-down Current ICC2 1 20 µA
+VIN = GND or VCC
+Current Read Data / C = 0.1 VCC / 0.9 VCC
+Dual /Quad 50MHz(2)
+ICC3
+DO = Open
+15 mA
+Current Read Data / C = 0.1 VCC / 0.9 VCC
+Dual /Quad 80MHz(2)
+ICC3
+DO = Open
+18 mA
+Current Read Data / C = 0.1 VCC / 0.9 VCC
+Dual /Quad 104MHz(2)
+ICC3
+DO = Open
+20 mA
+Current Write Status
+ICC4 /CS = VCC 20 25 mA
+Register
+Current Page Program ICC5 /CS = VCC 20 25 mA
+Current Sector/Block
+ICC6 /CS = VCC 20 25 mA
+Erase
+Current Chip Erase ICC7 /CS = VCC 20 25 mA
+Input Low Voltage VIL –0.5 VCC x 0.3 V
+Input High Voltage VIH VCC x 0.7 VCC + 0.4 V
+Output Low Voltage VOL IOL = 100 µA 0.2 V
+Output High Voltage VOH IOH = –100 µA VCC – 0.2 V
+Notes:
+1. Tested on sample basis and specified through design and characterization data. TA = 25° C, VCC = 3.0V.
+2. Checker Board Pattern.
+Publication Release Date: November 23, 2017
+- 62 - Revision E
+
+=== PDF Page 64 (index 63) ===
+W25Q128JV
+9.5 AC Measurement Conditions
+SPEC
+PARAMETER SYMBOL UNIT
+MIN MAX
+Load Capacitance CL 30 pF
+Input Rise and Fall Times TR, TF 5 ns
+Input Pulse Voltages VIN 0.1 VCC to 0.9 VCC V
+Input Timing Reference Voltages IN 0.3 VCC to 0.7 VCC V
+Output Timing Reference Voltages OUT 0.5 VCC to 0.5 VCC V
+Note:
+1. Output Hi-Z is defined as the point where data out is no longer driven.
+Input and Output
+Input Levels Timing Reference Levels
+0.9 VCC
+0.5 VCC
+0.1 VCC
+Figure 59. AC Measurement I/O Waveform
+- 63 -
+
+=== PDF Page 65 (index 64) ===
+W25Q128JV
+9.6 AC Electrical Characteristics(6)
+SPEC
+DESCRIPTION SYMBOL ALT UNIT
+MIN TYP MAX
+Clock frequency except for Read Data (03h)
+F f D.C. 133 MHz
+R C1
+instructions (3.0V-3.6V)
+Clock frequency except for Read Data (03h)
+F f D.C. 104 MHz
+R C2
+instructions( 2.7V-3.0V)
+Clock frequency for Read Data instruction (03h) fR D.C. 50 MHz
+Clock High, Low Time tCLH, 45%
+for all instructions except for Read Data (03h) tCLL (1) PC ns
+Clock High, Low Time tCRLH, 45%
+for Read Data (03h) instruction tCRLL (1) PC ns
+Clock Rise Time peak to peak tCLCH (2) 0.1 V/ns
+Clock Fall Time peak to peak tCHCL (2) 0.1 V/ns
+/CS Active Setup Time relative to CLK tSLCH tCSS 5 ns
+/CS Not Active Hold Time relative to CLK tCHSL 5 ns
+Data In Setup Time tDVCH tDSU 2 ns
+Data In Hold Time tCHDX tDH 3 ns
+/CS Active Hold Time relative to CLK tCHSH 3 ns
+/CS Not Active Setup Time relative to CLK tSHCH 3 ns
+/CS Deselect Time (for Read) tSHSL1 tCSH 10 ns
+/CS Deselect Time (for Erase or Program or Write) tSHSL2 tCSH 50 ns
+Output Disable Time tSHQZ (2) tDIS 7 ns
+Clock Low to Output Valid
+tCLQV tV 6 ns
+Output Hold Time tCLQX tHO 1.5 ns
+Continued – next page AC Electrical Characteristics (cont’d)
+Publication Release Date: November 23, 2017
+- 64 - Revision E
+

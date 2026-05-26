@@ -6,19 +6,28 @@
 #define PIN_EMG_ADC A0 // sEMG 传感器模拟输入
 
 // =============== 输出引脚 (蜂鸣器 & RGB 灯) ===============
-#define PIN_BUZZER 2
 #define PIN_RGB_R 5
 #define PIN_RGB_G 4
 #define PIN_RGB_B 3
-
+#define PIN_BUZZER 2
 
 // =============== SPI Flash (W25Q128) 引脚 ===============
 // 【致命红线警告】UNO R4 WiFi 的 SPI 引脚为 5V，
 // W25Q128FV 最高承受 3.6V，物理直连必烧毁 Flash！
-#define PIN_SPI_FLASH_CS 10 // 硬件 SPI CS  (信息备注)
-#define PIN_SPI_MOSI 11     // 硬件 SPI DI  (信息备注)
-#define PIN_SPI_MISO 12     // 硬件 SPI DO  (信息备注)
-#define PIN_SPI_SCK 13      // 硬件 SPI SCK (信息备注)
+//
+// 【电平转换】使用 4 路 BSS138 MOSFET 双向电平转换模块：
+//   Flash 侧（LV=3.3V）←电平转换→ Arduino 侧（HV=5V）
+//   CS#  → LV2-HV2 → D10  (Arduino→Flash)
+//   DI    → LV3-HV3 → D11  (Arduino→Flash, MOSI)
+//   DO    → LV1-HV1 → D12  (Flash→Arduino, MISO，最关键！)
+//   SCK  → LV4-HV4 → D13  (Arduino→Flash, SCK)
+//   LV 引脚必须接 3.3V，HV 引脚必须接 5V，GND 共地
+//
+#define PIN_SPI_FLASH_CS 10 // 硬件 SPI CS  → 电平转换 LV2-HV2
+#define PIN_SPI_MOSI 11     // 硬件 SPI MOSI (DI) → 电平转换 LV3-HV3
+#define PIN_SPI_MISO 12     // 硬件 SPI MISO (DO) → 电平转换 LV1-HV1
+#define PIN_SPI_SCK 13      // 硬件 SPI SCK (CLK) → 电平转换 LV4-HV4
+
 
 // =============== 板载指示灯 ===============
 #define PIN_LED_BUILTIN LED_BUILTIN

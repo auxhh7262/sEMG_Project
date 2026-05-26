@@ -4,8 +4,7 @@ const { log, warn, error } = require('../../utils/logger');
 const wifiClient = require('../../utils/wifiClient');
 const storage = require('../../utils/storage');
 
-const MAX_HISTORY = 5;
-const HARD_LIMIT = MAX_HISTORY * 2;
+const MAX_HISTORY = 10; // 显示10条数据
 
 Page({
   data: {
@@ -17,6 +16,7 @@ Page({
     connectionLost: false,
     historyRows: [],
     algorithm: '--',
+    scrollIntoId: 'row-0' // 滚动到最新数据（索引0=最新）
   },
 
   _historyRows: [],
@@ -28,42 +28,40 @@ Page({
   _tabVisible: false,
   _algorithmState: 'idle',
   _isResuming: false,
-  _stallTimers: [],
   _lastRenderTime: 0,
-  _lastSampleTime: 0,
+  _statusChangeHandler: null,
 
   onLoad() {
     log('[realtime] onLoad()');
     this._loadCalibFromCache();
     this._realtimeHandler = (d) => { this._onSample(d); };
-    wifiClient.onRealtimeData(this._realtimeHandler);
-  },
-
-  onShow() {
-    log('[realtime] onShow()');
-    this._tabVisible = true;
-    this._algorithmState = 'idle';
-
-    const cachedIp = wx.getStorageSync('device_ip');
-    const cachedPort = wx.getStorageSync('device_port') || 8888;
-
-    wifiClient.onStatusChange((status) => {
+    this._statusChangeHandler = (status, data) => {
       if (status === 'connected') {
         this.setData({ connected: true, isReconnecting: false, connectionLost: false });
-        this._resumeStream();
+        setTimeout(() => { this._resumeStream(); }, 100);
       } else if (status === 'connecting') {
         this.setData({ isReconnecting: true });
       } else {
         this.setData({ connected: false, isReconnecting: false, connectionLost: true });
         this._stopStream();
       }
-    });
+    };
+    wifiClient.onRealtimeData(this._realtimeHandler);
+    wifiClient.onStatusChange(this._statusChangeHandler);
+  },
 
+  onShow() {
+    log('[realtime] onShow()');
+    this._tabVisible = true;
+    this._algorithmState = 'idle';
+    const cachedIp = wx.getStorageSync('device_ip');
+    const cachedPort = wx.getStorageSync('device_port') || 8888;
+    wifiClient.offRealtimeData(this._realtimeHandler);
+    wifiClient.onRealtimeData(this._realtimeHandler);
     if (!cachedIp) {
       this.setData({ connected: false, connectionLost: true });
       return;
     }
-
     if (wifiClient.isConnected()) {
       this.setData({ connected: true, connectionLost: false });
       this._resumeStream();
@@ -78,44 +76,42 @@ Page({
   onHide() {
     this._tabVisible = false;
     this._stopStream();
-    wifiClient.offStatusChange();
   },
 
   onUnload() {
     this._stopStream();
-    wifiClient.offStatusChange();
-    wifiClient.offRealtimeData();
-    this._realtimeHandler = null;
+    if (this._realtimeHandler) {
+      wifiClient.offRealtimeData(this._realtimeHandler);
+      this._realtimeHandler = null;
+    }
+    if (this._statusChangeHandler) {
+      wifiClient.offStatusChange(this._statusChangeHandler);
+      this._statusChangeHandler = null;
+    }
   },
 
   _stopStream() {
     this._isResuming = false;
-    this._clearStallTimers();
-    this._lastSampleTime = 0;
+    this._lastRenderTime = 0;
     this._historyRows = [];
-    this.setData({ queueLength: 0 });
-    wifiClient.sendCmd('stop').catch(() => {});
+    this.setData({ queueLength: 0, historyRows: [], scrollIntoId: 'row-0' });
+    wifiClient.send({ cmd: 'stop', seq: Date.now() }).catch(() => {});
   },
 
   async _resumeStream() {
     if (this._isResuming) return;
     this._isResuming = true;
-
     try {
-      await wifiClient.sendCmd('start_stream', {});
-      // ✅ 强制清卡顿 UI（极罕见时序防护）
-      this.setData({
-        quality: '--',
-        timeStr: '--:--:--',
-        connectionLost: false
-      });
+      wifiClient.send({ cmd: 'start_stream', seq: Date.now() });
+      log('[realtime] start_stream 指令已发出');
+      this.setData({ quality: '--', timeStr: '--:--:--', connectionLost: false });
     } catch (e) {
-      warn('[realtime] start_stream failed:', e);
+      warn('[realtime] start_stream 发送异常:', e);
     }
 
     if (this._algorithmState === 'idle') {
       this._algorithmState = 'loading';
-      wifiClient.sendCmd('query_cz', {})
+      wifiClient.sendQuery('query_cz', {})
         .then(status => {
           if (status?.has_curve === true || status?.has_curve === 1) {
             this.setData({ algorithm: '个性化曲线' });
@@ -136,32 +132,6 @@ Page({
     this._isResuming = false;
   },
 
-  _startStallTimer() {
-    if (this._stallTimers.length > 0) return;
-    if (!this._lastSampleTime) return;
-
-    const mainTimer = setTimeout(() => {
-      const gap = Date.now() - this._lastSampleTime;
-      if (gap >= 5000 && this._tabVisible && wifiClient.isConnected()) {
-        warn('[realtime] 数据超过5秒未更新，可能存在卡顿');
-        this.setData({ quality: '卡顿', timeStr: '数据延迟' });
-      }
-      this._clearStallTimers();
-    }, 5000);
-
-    const guardTimer = setTimeout(() => {
-      this._clearStallTimers();
-    }, 6000);
-
-    this._stallTimers = [mainTimer, guardTimer];
-  },
-
-  _clearStallTimers() {
-    if (!this._stallTimers || !this._stallTimers.length) return;
-    this._stallTimers.forEach(t => clearTimeout(t));
-    this._stallTimers = [];
-  },
-
   _loadCalibFromCache() {
     try {
       const c = wx.getStorageSync('calib_data');
@@ -175,10 +145,6 @@ Page({
   },
 
   _onSample(d) {
-    this._lastSampleTime = Date.now();
-    this._clearStallTimers();
-    this._startStallTimer();
-
     try {
       const { ts, r: rms, m: mdf, f: fatigue, q: quality, a: activation } = d;
       if (rms == null) return;
@@ -188,7 +154,6 @@ Page({
         const date = new Date(ts);
         timeStr = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}.${String(date.getMilliseconds()).padStart(3, '0')}`;
       } else {
-        // ✅ ts 为空时补齐毫秒位，格式完全统一
         const now = new Date();
         timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}.${String(now.getMilliseconds()).padStart(3, '0')}`;
       }
@@ -205,30 +170,30 @@ Page({
         q: typeof quality === 'string' && quality ? quality : '--'
       };
 
-      this._historyRows.push(histRow);
-      if (this._historyRows.length > MAX_HISTORY) this._historyRows.shift();
-
-      // ✅ 硬上限防护（极端异常兜底）
-      if (this._historyRows.length > HARD_LIMIT) {
-        this._historyRows.splice(0, this._historyRows.length - MAX_HISTORY);
-      }
-
-      this.setData({ queueLength: this._historyRows.length });
+      // 新数据始终放在数组头部 (索引0=最新)
+      this._historyRows.unshift(histRow); 
+      
+      // 超过 10 条，把最老的（尾部）删掉
+      if (this._historyRows.length > MAX_HISTORY) this._historyRows.pop(); 
 
       const now = Date.now();
+      // 每次收到数据，都拷贝新数组驱动 WXML 滚动到最新行
+      this.setData({ 
+        historyRows: this._historyRows.slice(), // 必须用 slice() 拷贝新数组触发脏检查
+        scrollIntoId: 'row-0' // 滚动到最新数据
+      });
+
+      // 限频只针对顶部状态栏文字，不拦截列表数据更新
       if (now - this._lastRenderTime < 500) {
-        this.setData({ connectionLost: !wifiClient.isConnected() });
         return;
       }
-
       this._lastRenderTime = now;
+
       this.setData({
         quality: typeof quality === 'string' && quality ? quality : '--',
         timeStr,
-        connectionLost: !wifiClient.isConnected(),
-        historyRows: this._historyRows
+        connectionLost: !wifiClient.isConnected()
       });
-
     } catch (e) {
       error('[realtime] _onSample 内部崩溃:', e);
     }

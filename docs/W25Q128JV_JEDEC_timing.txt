@@ -1,0 +1,583 @@
+=== Page 3 ===
+W25Q128JV
+7.1.3 Security Register Lock Bits (LB3, LB2, LB1) – Volatile/Non-Volatile OTP Writable .......... 16
+7.1.4 Quad Enable (QE) – Volatile/Non-Volatile Writable .......................................................... 16
+7.1.5 Write Protect Selection (WPS) – Volatile/Non-Volatile Writable ....................................... 17
+7.1.6 Output Driver Strength (DRV1, DRV0) – Volatile/Non-Volatile Writable ........................... 17
+7.1.7 Reserved Bits – Non Functional ........................................................................................ 17
+7.1.8 W25Q128JV Status Register Memory Protection (WPS = 0, CMP = 0) ............................... 18
+7.1.9 W25Q128JV Status Register Memory Protection (WPS = 0, CMP = 1) ............................... 19
+7.1.10 W25Q128JV Individual Block Memory Protection (WPS=1) .............................................. 20
+8. INSTRUCTIONS ............................................................................................................................. 21
+8.1 Device ID and Instruction Set Tables ................................................................................. 21
+8.1.1 Manufacturer and Device Identification ................................................................................ 21
+8.1.2 Instruction Set Table 1 (Standard SPI Instructions)(1)........................................................... 22
+8.1.3 Instruction Set Table 2 (Dual/Quad SPI Instructions) ........................................................... 23
+Notes: ................................................................................................................................................ 23
+8.2 Instruction Descriptions ...................................................................................................... 24
+8.2.1 Write Enable (06h) ............................................................................................................... 24
+8.2.2 Write Enable for Volatile Status Register (50h) .................................................................... 24
+8.2.3 Write Disable (04h) ............................................................................................................... 25
+8.2.4 Read Status Register-1 (05h), Status Register-2 (35h) & Status Register-3 (15h) .............. 25
+8.2.5 Write Status Register-1 (01h), Status Register-2 (31h) & Status Register-3 (11h) .............. 26
+8.2.6 Read Data (03h) ................................................................................................................... 28
+8.2.7 Fast Read (0Bh) ................................................................................................................... 29
+8.2.8 Fast Read Dual Output (3Bh) ............................................................................................... 30
+8.2.9 Fast Read Quad Output (6Bh) .............................................................................................. 31
+8.2.10 Fast Read Dual I/O (BBh) ................................................................................................... 32
+8.2.11 Fast Read Quad I/O (EBh) ................................................................................................. 33
+8.2.12 Set Burst with Wrap (77h) .................................................................................................. 35
+8.2.13 Page Program (02h) ........................................................................................................... 36
+8.2.14 Quad Input Page Program (32h) ........................................................................................ 37
+8.2.15 Sector Erase (20h) ............................................................................................................. 38
+8.2.16 32KB Block Erase (52h) ..................................................................................................... 39
+8.2.17 64KB Block Erase (D8h) ..................................................................................................... 40
+8.2.18 Chip Erase (C7h / 60h) ....................................................................................................... 41
+8.2.19 Erase / Program Suspend (75h) ......................................................................................... 42
+8.2.20 Erase / Program Resume (7Ah) ......................................................................................... 43
+8.2.21 Power-down (B9h) .............................................................................................................. 44
+8.2.22 Release Power-down / Device ID (ABh) ............................................................................. 45
+8.2.23 Read Manufacturer / Device ID (90h) ................................................................................. 46
+8.2.24 Read Manufacturer / Device ID Dual I/O (92h) ................................................................... 47
+8.2.25 Read Manufacturer / Device ID Quad I/O (94h) ................................................................. 48
+8.2.26 Read Unique ID Number (4Bh)........................................................................................... 49
+Publication Release Date: November 23, 2017
+- 2 - Revision E
+
+=== Page 4 ===
+W25Q128JV
+8.2.27 Read JEDEC ID (9Fh) ........................................................................................................ 50
+8.2.28 Read SFDP Register (5Ah) ................................................................................................ 51
+8.2.29 Erase Security Registers (44h) ........................................................................................... 52
+8.2.30 Program Security Registers (42h) ...................................................................................... 53
+8.2.31 Read Security Registers (48h) ........................................................................................... 54
+8.2.32 Individual Block/Sector Lock (36h) ..................................................................................... 55
+8.2.33 Individual Block/Sector Unlock (39h) .................................................................................. 56
+8.2.34 Read Block/Sector Lock (3Dh) ........................................................................................... 57
+8.2.35 Global Block/Sector Lock (7Eh) .......................................................................................... 58
+8.2.36 Global Block/Sector Unlock (98h) ....................................................................................... 58
+8.2.37 Enable Reset (66h) and Reset Device (99h) ...................................................................... 59
+9. ELECTRICAL CHARACTERISTICS ............................................................................................... 60
+9.1 Absolute Maximum Ratings (1) ............................................................................................ 60
+9.2 Operating Ranges............................................................................................................... 60
+9.3 Power-Up Power-Down Timing and Requirements ............................................................ 61
+9.4 DC Electrical Characteristics- ............................................................................................. 62
+9.5 AC Measurement Conditions .............................................................................................. 63
+9.6 AC Electrical Characteristics(6) ........................................................................................... 64
+9.7 Serial Output Timing ........................................................................................................... 66
+9.8 Serial Input Timing .............................................................................................................. 66
+9.9 /WP Timing ......................................................................................................................... 66
+10. PACKAGE SPECIFICATIONS ........................................................................................................ 67
+10.1 8-Pin SOIC 208-mil (Package Code S) .............................................................................. 67
+10.2 16-Pin SOIC 300-mil (Package Code F) ............................................................................ 68
+10.3 8-Pad WSON 6x5-mm (Package Code P) ......................................................................... 69
+10.4 8-Pad WSON 8x6-mm (Package Code E) ......................................................................... 70
+10.5 24-Ball TFBGA 8x6-mm (Package Code B, 5x5-1 ball array) ............................................ 71
+10.6 24-Ball TFBGA 8x6-mm (Package Code C, 6x4 ball array) ............................................... 72
+11. ORDERING INFORMATION .......................................................................................................... 73
+11.1 Valid Part Numbers and Top Side Marking ........................................................................ 75
+12. REVISION HISTORY ...................................................................................................................... 77
+- 3 -
+
+=== Page 5 ===
+W25Q128JV
+1. GENERAL DESCRIPTIONS
+The W25Q128JV (128M-bit) Serial Flash memory provides a storage solution for systems with limited
+space, pins and power. The 25Q series offers flexibility and performance well beyond ordinary Serial Flash
+devices. They are ideal for code shadowing to RAM, executing code directly from Dual/Quad SPI (XIP)
+and storing voice, text and data. The device operates on a single 2.7V to 3.6V power supply with current
+consumption as low as 1µA for power-down. All devices are offered in space-saving packages.
+The W25Q128JV array is organized into 65,536 programmable pages of 256-bytes each. Up to 256 bytes
+can be programmed at a time. Pages can be erased in groups of 16 (4KB sector erase), groups of 128
+(32KB block erase), groups of 256 (64KB block erase) or the entire chip (chip erase). The W25Q128JV
+has 4,096 erasable sectors and 256 erasable blocks respectively. The small 4KB sectors allow for greater
+flexibility in applications that require data and parameter storage. (See Figure 2.)
+The W25Q128JV supports the standard Serial Peripheral Interface (SPI), Dual/Quad I/O SPI: Serial
+Clock, Chip Select, Serial Data I/O0 (DI), I/O1 (DO), I/O2 and I/O3. SPI clock frequencies of W25Q128JV
+of up to 133MHz are supported allowing equivalent clock rates of 266MHz (133MHz x 2) for Dual I/O and
+532MHz (133MHz x 4) for Quad I/O when using the Fast Read Dual/Quad I/O. These transfer rates can
+outperform standard Asynchronous 8 and 16-bit Parallel Flash memories.
+Additionally, the device supports JEDEC standard manufacturer and device ID and SFDP, and a 64-bit
+Unique Serial Number and three 256-bytes Security Registers.
+2. FEATURES
+ New Family of SpiFlash Memories  F l e x i b le A r c h i t e c t u re w it h 4 K B s e c t o r s
+– W25Q128JV: 128M-bit / 16M-byte – Uniform Sector/Block Erase (4K/32K/64K-Byte)
+– Standard SPI: CLK, /CS, DI, DO – Program 1 to 256 byte per programmable page
+– Dual SPI: CLK, /CS, IO , IO – Erase/Program Suspend & Resume
+0 1
+– Quad SPI: CLK, /CS, IO 0 , IO 1 , IO 2 , IO 3  Advanced Security Features
+– Software & Hardware Reset(1) – Software and Hardware Write-Protect
+ Highest Performance Serial Flash – Power Supply Lock-Down
+– 133MHz Single, Dual/Quad SPI clocks – Special OTP protection
+– 266/532MHz equivalent Dual/Quad SPI – Top/Bottom, Complement array protection
+– 66MB/S continuous data transfer rate – Individual Block/Sector array protection
+– Min. 100K Program-Erase cycles per sector – 64-Bit Unique ID for each device
+– More than 20-year data retention – Discoverable Parameters (SFDP) Register
+ Efficient “Continuous Read” – 3X256-Bytes Security Registers with OTP locks
+– Continuous Read with 8/16/32/64-Byte Wrap – Volatile & Non-volatile Status Register Bits
+– As few as 8 clocks to address memory  Space Efficient Packaging
+– Allows true XIP (execute in place) operation – 8-pin SOIC 208-mil
+ Low Power, Wide Temperature Range – 16-pin SOIC 300-mil (additional /RESET pin)
+– Single 2.7 to 3.6V supply – 8-pad WSON 6x5-mm / 8x6-mm
+– <1µA Power-down (typ.) – 24-ball TFBGA 8x6-mm (6x4/5x5 ball array)
+– -40°C to +85°C operating range – 24-ball WLCSP
+– Contact Winbond for KGD and other options
+Note: 1. Hardware /RESET pin is only available on
+TFBGA or SOIC16 packages
+Publication Release Date: November 23, 2017
+- 4 - Revision E
+
+=== Page 22 ===
+W25Q128JV
+8. INSTRUCTIONS
+The Standard/Dual/Quad SPI instruction set of the W25Q128JV consists of 47 basic instructions that are
+fully controlled through the SPI bus (see Instruction Set Table1-2). Instructions are initiated with the falling
+edge of Chip Select (/CS). The first byte of data clocked into the DI input provides the instruction code.
+Data on the DI input is sampled on the rising edge of clock with most significant bit (MSB) first.
+Instructions vary in length from a single byte to several bytes and may be followed by address bytes, data
+bytes, dummy bytes (don’t care), and in some cases, a combination. Instructions are completed with the
+rising edge of edge /CS. Clock relative timing diagrams for each instruction are included in Figures 5
+through 57. All read instructions can be completed after any clocked bit. However, all instructions that
+Write, Program or Erase must complete on a byte boundary (/CS driven high after a full 8-bits have been
+clocked) otherwise the instruction will be ignored. This feature further protects the device from inadvertent
+writes. Additionally, while the memory is being programmed or erased, or when the Status Register is
+being written, all instructions except for Read Status Register will be ignored until the program or erase
+cycle has completed.
+8.1 Device ID and Instruction Set Tables
+8.1.1 Manufacturer and Device Identification
+MANUFACTURER ID (MF7 - MF0)
+Winbond Serial Flash EFh
+Device ID (ID7 - ID0) (ID15 - ID0)
+Instruction ABh, 90h, 92h, 94h 9Fh
+W25Q128JV-IQ 17h 4018h
+W25Q128JV-IM* 17h 7018h
+Note: For DTR, QPI supporting, please refer to W25Q128JV DTR datasheet.
+- 21 -
+
+=== Page 23 ===
+W25Q128JV
+8.1.2 Instruction Set Table 1 (Standard SPI Instructions)(1)
+Data Input Output Byte 1 Byte 2 Byte 3 Byte 4 Byte 5 Byte 6 Byte 7
+Number of Clock(1-1-1) 8 8 8 8 8 8 8
+Write Enable 06h
+Volatile SR Write Enable 50h
+Write Disable 04h
+Release Power-down / ID ABh Dummy Dummy Dummy (ID7-ID0)(2)
+Manufacturer/Device ID 90h Dummy Dummy 00h (MF7-MF0) (ID7-ID0)
+JEDEC ID 9Fh (MF7-MF0) (ID15-ID8) (ID7-ID0)
+Read Unique ID 4Bh Dummy Dummy Dummy Dummy (UID63-0)
+Read Data 03h A23-A16 A15-A8 A7-A0 (D7-D0)
+Fast Read 0Bh A23-A16 A15-A8 A7-A0 Dummy (D7-D0)
+Page Program 02h A23-A16 A15-A8 A7-A0 D7-D0 D7-D0(3)
+Sector Erase (4KB) 20h A23-A16 A15-A8 A7-A0
+Block Erase (32KB) 52h A23-A16 A15-A8 A7-A0
+Block Erase (64KB) D8h A23-A16 A15-A8 A7-A0
+Chip Erase C7h/60h
+Read Status Register-1 05h (S7-S0)(2)
+Write Status Register-1(4) 01h (S7-S0)(4)
+Read Status Register-2 35h (S15-S8)(2)
+Write Status Register-2 31h (S15-S8)
+Read Status Register-3 15h (S23-S16)(2)
+Write Status Register-3 11h (S23-S16)
+Read SFDP Register 5Ah 00 00 A7-A0 Dummy (D7-D0)
+Erase Security Register(5) 44h A23-A16 A15-A8 A7-A0
+Program Security Register(5) 42h A23-A16 A15-A8 A7-A0 D7-D0 D7-D0(3)
+Read Security Register(5) 48h A23-A16 A15-A8 A7-A0 Dummy (D7-D0)
+Global Block Lock 7Eh
+Global Block Unlock 98h
+Read Block Lock 3Dh A23-A16 A15-A8 A7-A0 (L7-L0)
+Individual Block Lock 36h A23-A16 A15-A8 A7-A0
+Individual Block Unlock 39h A23-A16 A15-A8 A7-A0
+Erase / Program Suspend 75h
+Erase / Program Resume 7Ah
+Power-down B9h
+Enable Reset 66h
+Reset Device 99h
+Publication Release Date: November 23, 2017
+- 22 - Revision E
+
+=== Page 24 ===
+W25Q128JV
+8.1.3 Instruction Set Table 2 (Dual/Quad SPI Instructions)
+Data Input Output Byte 1 Byte 2 Byte 3 Byte 4 Byte 5 Byte 6 Byte 7 Byte 8 Byte 9
+Number of Clock(1-1-2) 8 8 8 8 4 4 4 4 4
+Fast Read Dual Output 3Bh A23-A16 A15-A8 A7-A0 Dummy Dummy (D7-D0)(7)
+Number of Clock(1-2-2) 8 4 4 4 4 4 4 4 4
+Fast Read Dual I/O BBh A23-A16(6) A15-A8(6) A7-A0(6) Dummy(11) (D7-D0)(7)
+Mftr./Device ID Dual I/O 92h A23-A16(6) A15-A8(6) 00(6) Dummy(11) (MF7-MF0) (ID7-ID0)(7)
+Number of Clock(1-1-4) 8 8 8 8 2 2 2 2 2
+Quad Input Page Program 32h A23-A16 A15-A8 A7-A0 (D7-D0)(9) (D7-D0)(3) …
+Fast Read Quad Output 6Bh A23-A16 A15-A8 A7-A0 Dummy Dummy Dummy Dummy (D7-D0)(10)
+Number of Clock(1-4-4) 8 2(8) 2(8) 2(8) 2 2 2 2 2
+Mftr./Device ID Quad I/O 94h A23-A16 A15-A8 00 Dummy(11) Dummy Dummy (MF7-MF0) (ID7-ID0)
+Fast Read Quad I/O EBh A23-A16 A15-A8 A7-A0 Dummy(11) Dummy Dummy (D7-D0)
+Set Burst with Wrap 77h Dummy Dummy Dummy W8-W0
+Notes:
+1. Data bytes are shifted with Most Significant Bit first. Byte fields with data in parenthesis “( )” indicate data
+output from the device on either 1, 2 or 4 IO pins.
+2. The Status Register contents and Device ID will repeat continuously until /CS terminates the instruction.
+3. At least one byte of data input is required for Page Program, Quad Page Program and Program Security
+Registers, up to 256 bytes of data input. If more than 256 bytes of data are sent to the device, the
+addressing will wrap to the beginning of the page and overwrite previously sent data.
+4. Write Status Register-1 (01h) can also be used to program Status Register-1&2, see section 8.2.5.
+5. Security Register Address:
+Security Register 1: A23-16 = 00h; A15-8 = 10h; A7-0 = byte address
+Security Register 2: A23-16 = 00h; A15-8 = 20h; A7-0 = byte address
+Security Register 3: A23-16 = 00h; A15-8 = 30h; A7-0 = byte address
+6. Dual SPI address input format:
+IO0 = A22, A20, A18, A16, A14, A12, A10, A8 A6, A4, A2, A0, M6, M4, M2, M0
+IO1 = A23, A21, A19, A17, A15, A13, A11, A9 A7, A5, A3, A1, M7, M5, M3, M1
+7. Dual SPI data output format:
+IO0 = (D6, D4, D2, D0)
+IO1 = (D7, D5, D3, D1)
+8. Quad SPI address input format: Set Burst with Wrap input format:
+IO0 = A20, A16, A12, A8, A4, A0, M4, M0 IO0 = x, x, x, x, x, x, W4, x
+IO1 = A21, A17, A13, A9, A5, A1, M5, M1 IO1 = x, x, x, x, x, x, W5, x
+IO2 = A22, A18, A14, A10, A6, A2, M6, M2 IO2 = x, x, x, x, x, x, W6, x
+IO3 = A23, A19, A15, A11, A7, A3, M7, M3 IO3 = x, x, x, x, x, x, x, x
+9. Quad SPI data input/output format:
+IO0 = (D4, D0, …..)
+IO1 = (D5, D1, …..)
+IO2 = (D6, D2, …..)
+IO3 = (D7, D3, …..)
+10. Fast Read Quad I/O data output format:
+IO0 = (x, x, x, x, D4, D0, D4, D0)
+IO1 = (x, x, x, x, D5, D1, D5, D1)
+IO2 = (x, x, x, x, D6, D2, D6, D2)
+IO3 = (x, x, x, x, D7, D3, D7, D3)
+11. The first dummy is M7-M0 should be set to Fxh
+- 23 -
+
+=== Page 45 ===
+W25Q128JV
+8.2.21 Power-down (B9h)
+Although the standby current during normal operation is relatively low, standby current can be further
+reduced with the Power-down instruction. The lower power consumption makes the Power-down
+instruction especially useful for battery powered applications (See ICC1 and ICC2 in AC Characteristics).
+The instruction is initiated by driving the /CS pin low and shifting the instruction code “B9h” as shown in
+Figure 37a.
+The /CS pin must be driven high after the eighth bit has been latched. If this is not done the Power-down
+instruction will not be executed. After /CS is driven high, the power-down state will entered within the time
+duration of tDP (See AC Characteristics). While in the power-down state only the Release Power-down /
+Device ID (ABh) instruction, which restores the device to normal operation, will be recognized. All other
+instructions are ignored. This includes the Read Status Register instruction, which is always available
+during normal operation. Ignoring all but one instruction makes the Power Down state a useful condition
+for securing maximum write protection. The device always powers-up in the normal operation with the
+standby current of ICC1.
+/CS
+tDP
+Mode 3 0 1 2 3 4 5 6 7 Mode 3
+CLK Mode 0 Mode 0
+Instruction (B9h)
+DI
+(IO)
+0
+Stand-by current Power-down current
+Figure 37a. Deep Power-down Instruction
+Publication Release Date: November 23, 2017
+- 44 - Revision E
+
+=== Page 46 ===
+W25Q128JV
+8.2.22 Release Power-down / Device ID (ABh)
+The Release from Power-down / Device ID instruction is a multi-purpose instruction. It can be used to
+release the device from the power-down state, or obtain the devices electronic identification (ID) number.
+To release the device from the power-down state, the instruction is issued by driving the /CS pin low,
+shifting the instruction code “ABh” and driving /CS high as shown in Figure 38a. Release from power-down
+will take the time duration of tRES1 (See AC Characteristics) before the device will resume normal
+operation and other instructions are accepted. The /CS pin must remain high during the tRES1 time
+duration.
+When used only to obtain the Device ID while not in the power-down state, the instruction is initiated by
+driving the /CS pin low and shifting the instruction code “ABh” followed by 3-dummy bytes. The Device ID
+bits are then shifted out on the falling edge of CLK with most significant bit (MSB) first. The Device ID
+value for the W25Q128JV is listed in Manufacturer and Device Identification table. The Device ID can be
+read continuously. The instruction is completed by driving /CS high.
+When used to release the device from the power-down state and obtain the Device ID, the instruction is
+the same as previously described, and shown in Figure 38c, except that after /CS is driven high it must
+remain high for a time duration of tRES2 (See AC Characteristics). After this time duration the device will
+resume normal operation and other instructions will be accepted. If the Release from Power-down /
+Device ID instruction is issued while an Erase, Program or Write cycle is in process (when BUSY equals
+1) the instruction is ignored and will not have any effects on the current cycle.
+/CS
+tRES1
+Mode 3 0 1 2 3 4 5 6 7 Mode 3
+CLK Mode 0 Mode 0
+Instruction (ABh)
+DI
+(IO)
+0
+Power-down current Stand-by current
+Figure 38a. Release Power-down Instruction
+/CS
+Mode 3 0 1 2 3 4 5 6 7 8 9 29 30 31 32 33 34 35 36 37 38 Mode 3
+CLK Mode 0 Mode 0
+Instruction (ABh) 3 Dummy Bytes tRES2
+DI
+23 22 2 1 0
+(IO)
+0 * Device ID
+DO High Impedance
+7 6 5 4 3 2 1 0
+(IO)
+1 *
+*= MSB Power-down current Stand-by current
+Figure 38c. Release Power-down / Device ID Instruction
+- 45 -
+
+=== Page 47 ===
+W25Q128JV
+8.2.23 Read Manufacturer / Device ID (90h)
+The Read Manufacturer/Device ID instruction is an alternative to the Release from Power-down / Device
+ID instruction that provides both the JEDEC assigned manufacturer ID and the specific device ID.
+The Read Manufacturer/Device ID instruction is very similar to the Release from Power-down / Device ID
+instruction. The instruction is initiated by driving the /CS pin low and shifting the instruction code “90h”
+followed by a 24-bit address (A23-A0) of 000000h. After which, the Manufacturer ID for Winbond (EFh)
+and the Device ID are shifted out on the falling edge of CLK with most significant bit (MSB) first as shown
+in Figure 39. The Device ID values for the W25Q128JV are listed in Manufacturer and Device
+Identification table. The instruction is completed by driving /CS high.
+/CS
+Mode 3 0 1 2 3 4 5 6 7 8 9 10 28 29 30 31
+CLK Mode 0
+Instruction (90h) Address (000000h)
+DI
+23 22 21 3 2 1 0
+(IO)
+0
+*
+DO High Impedance
+(IO)
+1
+*= MSB
+/CS
+31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 Mode 3
+CLK Mode 0
+DI
+0
+(IO)
+0
+DO
+7 6 5 4 3 2 1 0
+(IO)
+1
+Manufacturer ID (EFh) * Device ID
+Figure 39. Read Manufacturer / Device ID Instruction
+Publication Release Date: November 23, 2017
+- 46 - Revision E
+
+=== Page 48 ===
+W25Q128JV
+8.2.24 Read Manufacturer / Device ID Dual I/O (92h)
+The Read Manufacturer / Device ID Dual I/O instruction is an alternative to the Read Manufacturer /
+Device ID instruction that provides both the JEDEC assigned manufacturer ID and the specific device ID
+at 2x speed.
+The Read Manufacturer / Device ID Dual I/O instruction is similar to the Fast Read Dual I/O instruction.
+The instruction is initiated by driving the /CS pin low and shifting the instruction code “92h” followed by a
+24-bit address (A23-A0) of 000000h, but with the capability to input the Address bits two bits per clock.
+After which, the Manufacturer ID for Winbond (EFh) and the Device ID are shifted out 2 bits per clock on
+the falling edge of CLK with most significant bits (MSB) first as shown in Figure 40. The Device ID values
+for the W25Q128JV are listed in Manufacturer and Device Identification table. The Manufacturer and
+Device IDs can be read continuously, alternating from one to the other. The instruction is completed by
+driving /CS high.
+/CS
+Mode 3 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
+CLK Mode 0
+Instruction (92h) A23-16 A15-8 A7-0 (00h) M7-0
+DI
+6 4 2 0 6 4 2 0 6 4 2 0 6 4 2 0
+(IO)
+0
+DO High Impedance
+7 5 3 1 7 5 3 1 7 5 3 1 7 5 3 1
+(IO)
+1 *= MSB * * * *
+/CS
+23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 Mode 3
+CLK Mode 0
+IOs switch from
+Input to Output
+DI
+0 6 4 2 0 6 4 2 0 6 4 2 0 6 4 2 0
+(IO)
+0
+DO
+1 7 5 3 1 7 5 3 1 7 5 3 1 7 5 3 1
+(IO)
+1 * * * MFR ID * Device ID
+MFR ID Device ID
+(repeat) (repeat)
+Figure 40. Read Manufacturer / Device ID Dual I/O Instruction
+Note:
+The “Continuous Read Mode” bits M(7-0) must be set to Fxh to be compatible with Fast Read Dual I/O instruction.
+- 47 -
+
+=== Page 49 ===
+W25Q128JV
+8.2.25 Read Manufacturer / Device ID Quad I/O (94h)
+The Read Manufacturer / Device ID Quad I/O instruction is an alternative to the Read Manufacturer /
+Device ID instruction that provides both the JEDEC assigned manufacturer ID and the specific device ID
+at 4x speed.
+The Read Manufacturer / Device ID Quad I/O instruction is similar to the Fast Read Quad I/O instruction.
+The instruction is initiated by driving the /CS pin low and shifting the instruction code “94h” followed by a
+four clock dummy cycles and then a 24-bit address (A23-A0) of 000000h, but with the capability to input
+the Address bits four bits per clock. After which, the Manufacturer ID for Winbond (EFh) and the Device ID
+are shifted out four bits per clock on the falling edge of CLK with most significant bit (MSB) first as shown
+in Figure 41. The Device ID values for the W25Q128JV are listed in Manufacturer and Device
+Identification table. The Manufacturer and Device IDs can be read continuously, alternating from one to
+the other. The instruction is completed by driving /CS high.
+/CS
+Mode 3 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23
+CLK Mode 0
+A7-0 IOs switch from
+Instruction (94h) A23-16 A15-8 M7-0 Dummy Dummy
+(00h) Input to Output
+IO 4 0 4 0 4 0 4 0 4 0 4 0
+0
+High Impedance
+IO 5 1 5 1 5 1 5 1 5 1 5 1
+1
+High Impedance
+IO 6 2 6 2 6 2 6 2 6 2 6 2
+2
+High Impedance
+IO 7 3 7 3 7 3 7 3 7 3 7 3
+3
+MFR ID Device ID
+/CS
+23 24 25 26 27 28 29 30 Mode 3
+CLK Mode 0
+IO 0 4 0 4 0 4 0 4 0
+0
+IO 1 5 1 5 1 5 1 5 1
+1
+IO 2 6 2 6 2 6 2 6 2
+2
+IO 3 7 3 7 3 7 3 7 3
+3
+MFR ID Device ID MFR ID Device ID
+(repeat) (repeat) (repeat) (repeat)
+Figure 41. Read Manufacturer / Device ID Quad I/O Instruction
+Note:
+The “Continuous Read Mode” bits M(7-0) must be set to Fxh to be compatible with Fast Read Quad I/O instruction.
+Publication Release Date: November 23, 2017
+- 48 - Revision E
+
+=== Page 51 ===
+W25Q128JV
+8.2.27 Read JEDEC ID (9Fh)
+For compatibility reasons, the W25Q128JV provides several instructions to electronically determine the
+identity of the device. The Read JEDEC ID instruction is compatible with the JEDEC standard for SPI
+compatible serial memories that was adopted in 2003. The instruction is initiated by driving the /CS pin low
+and shifting the instruction code “9Fh”. The JEDEC assigned Manufacturer ID byte for Winbond (EFh) and
+two Device ID bytes, Memory Type (ID15-ID8) and Capacity (ID7-ID0) are then shifted out on the falling
+edge of CLK with most significant bit (MSB) first as shown in Figure 43a. For memory type and capacity
+values refer to Manufacturer and Device Identification table.
+/CS
+Mode 3 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+CLK Mode 0
+Instruction (9Fh)
+DI
+(IO)
+0
+Manufacturer ID (EFh)
+DO High Impedance
+(IO)
+1
+*= MSB
+/CS
+15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 Mode 3
+CLK Mode 0
+DI
+(IO)
+0
+Memory Type ID15-8 Capacity ID7-0
+DO
+7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+(IO)
+1 * *
+Figure 43a. Read JEDEC ID Instruction
+Publication Release Date: November 23, 2017
+- 50 - Revision E
+
+=== Page 52 ===
+W25Q128JV
+8.2.28 Read SFDP Register (5Ah)
+The W25Q128JV features a 256-Byte Serial Flash Discoverable Parameter (SFDP) register that contains
+information about device configurations, available instructions and other features. The SFDP parameters
+are stored in one or more Parameter Identification (PID) tables. Currently only one PID table is specified,
+but more may be added in the future. The Read SFDP Register instruction is compatible with the SFDP
+standard initially established in 2010 for PC and other applications, as well as the JEDEC standard
+JESD216-serials that is published in 2011. Most Winbond SpiFlash Memories shipped after June 2011
+(date code 1124 and beyond) support the SFDP feature as specified in the applicable datasheet.
+The Read SFDP instruction is initiated by driving the /CS pin low and shifting the instruction code “5Ah”
+followed by a 24-bit address (A23-A0)(1) into the DI pin. Eight “dummy” clocks are also required before the
+SFDP register contents are shifted out on the falling edge of the 40th CLK with most significant bit (MSB)
+first as shown in Figure 44. For SFDP register values and descriptions, please refer to the Winbond
+Application Note for SFDP Definition Table.
+Note 1: A23-A8 = 0; A7-A0 are used to define the starting byte address for the 256-Byte SFDP Register.
+/CS
+Mode 3 0 1 2 3 4 5 6 7 8 9 10 28 29 30 31
+CLK Mode 0
+Instruction (5Ah) 24-Bit Address
+DI
+23 22 21 3 2 1 0
+(IO)
+0 *
+DO High Impedance
+(IO)
+1
+/CS
+31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55
+CLK
+Dummy Byte
+DI
+0 7 6 5 4 3 2 1 0
+(IO)
+0
+Data Out 1 Data Out 2
+DO High Impedance
+7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0 7
+(IO)
+1 *= MSB * *
+Figure 44. Read SFDP Register Instruction Sequence Diagram
+- 51 -
+
+=== Page 61 ===
+W25Q128JV
+9. ELECTRICAL CHARACTERISTICS
+9.1 Absolute Maximum Ratings (1)
+PARAMETERS SYMBOL CONDITIONS RANGE UNIT
+Supply Voltage VCC –0.6 to 4.6 V
+Voltage Applied to Any Pin VIO Relative to Ground –0.6 to VCC+0.4 V
+<20nS Transient
+Transient Voltage on any Pin VIOT –2.0V to VCC+2.0V V
+Relative to Ground
+Storage Temperature TSTG –65 to +150 °C
+Lead Temperature TLEAD See Note (2) °C
+Electrostatic Discharge Voltage VESD Human Body Model(3) –2000 to +2000 V
+Notes:
+1. This device has been designed and tested for the specified operation ranges. Proper operation outside
+of these levels is not guaranteed. Exposure to absolute maximum ratings may affect device reliability.
+Exposure beyond absolute maximum ratings may cause permanent damage.
+2. Compliant with JEDEC Standard J-STD-20C for small body Sn-Pb or Pb-free (Green) assembly and the
+European directive on restrictions on hazardous substances (RoHS) 2002/95/EU.
+3. JEDEC Std JESD22-A114A (C1=100pF, R1=1500 ohms, R2=500 ohms).
+9.2 Operating Ranges
+SPEC
+PARAMETER SYMBOL CONDITIONS UNIT
+MIN MAX
+F
+R
+= 133MHz, fR = 50MHz 3.0 3.6 V
+Supply Voltage(1) VCC
+F
+R
+= 104MHz, fR = 50MHz 2.7 3.0 V
+Ambient Temperature,
+TA Industrial –40 +85 °C
+Operating
+Note:
+1. VCC voltage during Read can operate across the min and max range but should not exceed ±10% of
+the programming (erase/write) voltage.
+Publication Release Date: November 23, 2017
+- 60 - Revision E
+

@@ -5,9 +5,8 @@
 #include <WiFiS3.h>
 #include <WiFiUdp.h>
 #include <WebSocketsServer.h>
-#include "0_Base/Globals.h" 
+#include "0_Base/Globals.h"
 
-// 前向声明，减少头文件依赖
 class BleConfigServer;
 
 class NetManager {
@@ -17,20 +16,14 @@ public:
     void tick();
     void sendData(float rms, float mdf, float fatigue, uint8_t quality, float activation = 0.0f, bool isCalibMode = false, const char* calibPhase = nullptr);
 
-    // ---- JSON 命令接口 ----
     void sendJsonTo(uint8_t clientNum, const char* json);
-    void setAutoSeq(int seq); // [v3.9.14] 设置自动seq（命令响应自动回传）
-    void clearAutoSeq() { _autoSeq = -1; } // 清除自动seq（push消息用）
-
+    
+    void setAutoSeq(int seq);
+    void clearAutoSeq() { _autoSeq = -1; }
     void setCommandCallback(void (*callback)(uint8_t, const char*));
 
     bool isWifiConnected() const;
     bool isTcpClientConnected() const;
-
-    // [修复 v3.9.15] 数据流控制（只有收到 start_stream 后才允许发送）
-    void startStreaming(); // 收到 start_stream 后调用
-    void stopStreaming(); // 断开连接或进入 IDLE 时调用
-    bool isStreamingRequested() const { return _streamingRequested; }
 
     void connectWifi(const char* ssid, const char* pass);
     void disconnectWifi();
@@ -45,29 +38,29 @@ private:
     bool _wifiConnected;
     uint32_t _wifiRetryTimer;
     const uint32_t WIFI_RETRY_INTERVAL = 10000;
-    bool _eepromCredsTried; // [B1-1-fix] 标记是否已尝试EEPROM凭证
-    bool _dhcpWaitDone; // DHCP等待是否完成
-    uint32_t _dhcpWaitStart; // DHCP等待开始时间
-    bool _dhcpGotIp; // DHCP是否成功获取IP
-    uint32_t _dhcpStableStart; // [REVIEW-FIX] DHCP获取IP后的稳定计时起点
-    bool _bleIpPushPending; // BLE连接时WiFi未连，等连上后推送IP
-    bool _ntpPending; // NTP请求已发送，等待响应
-    uint32_t _ntpRequestTime; // NTP请求发送时间（超时检测+重试间隔）
-    uint32_t _lastDisconnectLogMs; // 上次TCP断连日志时间（限频）
-    uint32_t _lastZombieCheck; // 上次僵尸连接检测时间（30秒间隔）
-    int _autoSeq; // [v3.9.14] 自动seq回传（-1=禁用）
+    bool _eepromCredsTried;
+    bool _dhcpWaitDone;
+    uint32_t _dhcpWaitStart;
+    bool _dhcpGotIp;
+    uint32_t _dhcpStableStart;
+    bool _bleIpPushPending;
+    bool _ntpPending;
+    uint32_t _ntpRequestTime;
+    uint32_t _lastDisconnectLogMs;
+    int _autoSeq;
+
     unsigned long _ntpBaseMillis;
     unsigned long _ntpBaseSeconds;
     bool _isNtpSynced;
     WiFiUDP _ntpUdp;
     byte _ntpPacketBuffer[48];
+
     WebSocketsServer _tcpServer;
     bool _tcpStreaming;
-    uint8_t _currentClient; // 当前连接的客户端编号
-    char _tcpJsonBuf[192]; // [B1-4-fix] 128→192，防止JSON截断
-    bool _streamingRequested; // [修复 v3.9.15] 只有收到 start_stream 后才允许发送数据
+    uint8_t _currentClient;
+    char _tcpJsonBuf[224];
 
     void _getTimestamp(uint32_t &sec, uint16_t &ms);
 };
 
-#endif // NET_MANAGER_H
+#endif

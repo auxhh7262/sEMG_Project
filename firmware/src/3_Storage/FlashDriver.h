@@ -17,6 +17,7 @@ public:
 
     void init(bool fullUnlock = false);
     uint32_t getChipID();
+    void diagnoseJedec();  // 运行时诊断：重新读取JEDEC并打印完整日志
 
     void readData(uint32_t addr, uint8_t* buf, uint16_t len);
     bool writeData(uint32_t addr, const uint8_t* buf, uint16_t len);
@@ -32,7 +33,7 @@ public:
     bool isBusy();
 
     // 适配上层的 bool 返回值接口
-    bool Init()                { init(true); return true; }
+    bool Init()                { init(true); return _initOk; }  // 返回实际初始化结果
     bool EraseSector(uint32_t addr)       { sectorErase(addr); return true; }
     bool EraseBlock64K(uint32_t addr)     { blockErase64K(addr); return true; }
     bool EraseSectorAsync(uint32_t addr)  { sectorEraseAsync(addr); return true; }
@@ -46,6 +47,7 @@ private:
     FlashDriver();
     FlashDriver(const FlashDriver&) = delete;
     FlashDriver& operator=(const FlashDriver&) = delete;
+    bool _initOk;  // 记录初始化是否成功
 
     void csLow();
     void csHigh();

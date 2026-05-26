@@ -1,4 +1,4 @@
-﻿# MEMORY.md - Long-Term Memory
+# MEMORY.md - Long-Term Memory
 
 ## 2026-05-06
 
@@ -23,8 +23,8 @@
 ### ⚠️ 重要更正
 - ### 已确认
 - RA4M1 有硬件FPU（Cortex-M4F），浮点FFT无需软件模拟
-- **⚠️ UNO R4 WiFi GPIO输出5V**（板载电平转换），非RA4M1原生3.3V！W25Q128需电阻分压（MOSI/SCK/CS），MISO可直接连接
-- 之前记录"RA4M1实际3.3V可直接连W25Q128"是**错误的**，已更正
+- **⚠️ UNO R4 WiFi GPIO输出5V**（板载电平转换），非RA4M1原生3.3V！W25Q128FVSG需电阻分压（MOSI/SCK/CS），MISO可直接连接
+- 之前记录"RA4M1实际3.3V可直接连W25Q128FVSG"是**错误的**，已更正
 - 固件SignalProcessor已完成8项优化（v4.1.0）
 - 疲劳度算法改为MDF-only，不再用RMS参与疲劳计算
 - 放大倍数已更正：文档明确1000倍（之前错误记录为1500倍）

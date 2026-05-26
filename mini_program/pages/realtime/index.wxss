@@ -62,7 +62,7 @@ page {
 .th-fat   { color: #ff9800; flex: 1.0; }
 .th-q     { color: #fff; flex: 1.0; }
 
-/* --- 数据行（最新5帧）--- */
+/* --- 数据行（最新10帧）--- */
 .dt-body {
   flex-shrink: 0;
   overflow-y: auto;

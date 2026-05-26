@@ -1,0 +1,36 @@
+﻿=== Full page 51 ===
+W25Q128JV
+8.2.27 Read JEDEC ID (9Fh)
+For compatibility reasons, the W25Q128JV provides several instructions to electronically determine the
+identity of the device. The Read JEDEC ID instruction is compatible with the JEDEC standard for SPI
+compatible serial memories that was adopted in 2003. The instruction is initiated by driving the /CS pin low
+and shifting the instruction code ��9Fh��. The JEDEC assigned Manufacturer ID byte for Winbond (EFh) and
+two Device ID bytes, Memory Type (ID15-ID8) and Capacity (ID7-ID0) are then shifted out on the falling
+edge of CLK with most significant bit (MSB) first as shown in Figure 43a. For memory type and capacity
+values refer to Manufacturer and Device Identification table.
+/CS
+Mode 3 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15
+CLK Mode 0
+Instruction (9Fh)
+DI
+(IO)
+0
+Manufacturer ID (EFh)
+DO High Impedance
+(IO)
+1
+*= MSB
+/CS
+15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 Mode 3
+CLK Mode 0
+DI
+(IO)
+0
+Memory Type ID15-8 Capacity ID7-0
+DO
+7 6 5 4 3 2 1 0 7 6 5 4 3 2 1 0
+(IO)
+1 * *
+Figure 43a. Read JEDEC ID Instruction
+Publication Release Date: November 23, 2017
+- 50 - Revision E

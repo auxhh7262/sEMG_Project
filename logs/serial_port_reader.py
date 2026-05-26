@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""串口读取器 - 独占串口，持续读取并写入 serial_log.txt
+使用 DTR/RTS 触发设备复位（替代 1200bps 技巧）
+"""
 import os, sys, time, serial
 from pathlib import Path
 
@@ -15,26 +18,31 @@ def safe_print(msg):
         pass
 
 def connect_serial():
-    safe_print(f'\n[upload_and_monitor] Step 1: Opening {PORT}...')
+    safe_print(f'\n[serial_reader] Opening {PORT} at {BAUD}...')
     try:
-        ser = serial.Serial(PORT, BAUD, timeout=0.1)
-        # 清空串口缓冲区（丢弃设备在旧代码期间打印的数据）
-        safe_print(f'[upload_and_monitor] Flushing serial buffer (discarding old data)...')
+        # dsrdtr=True 让 setDTR/setRTS 生效
+        # rtscts=False 避免硬件流控问题
+        ser = serial.Serial(
+            PORT, BAUD, timeout=0.1,
+            dsrdtr=True,   # 启用 DTR/DSR 握手
+            rtscts=False   # 禁用 RTS/CTS 握手
+        )
+        # DTR/RTS 默认可能已是 True（触发复位），显式设置一次确保复位
+        ser.setDTR(True)
+        ser.setRTS(True)
+        safe_print(f'[serial_reader] Port opened, DTR={ser.dtr} RTS={ser.rts}')
+        safe_print(f'[serial_reader] Waiting 2s for device boot...')
+        time.sleep(2)
+        # 清空缓冲区（丢弃复位期间的数据）
         ser.reset_input_buffer()
-        # 上传完成后，设备需要约10秒完成bootloader写入+复位
-        # 等12秒后再读，确保设备已进入新固件运行阶段
-        safe_print(f'[upload_and_monitor] Waiting 12s for device boot (bootloader + reset)...')
-        time.sleep(12)
-        # 清空等待期间的数据（设备可能已在输出）
-        ser.reset_input_buffer()
-        safe_print(f'[upload_and_monitor] Buffer flushed, starting to read fresh data...')
+        safe_print(f'[serial_reader] Buffer flushed, starting to read...')
         return ser
     except serial.SerialException as e:
-        safe_print(f'[upload_and_monitor] ERROR: {e}')
+        safe_print(f'[serial_reader] ERROR: {e}')
         sys.exit(1)
 
 def monitor_loop(ser):
-    safe_print(f'[upload_and_monitor] Step 2: Monitoring (log -> {LOG_FILE})')
+    safe_print(f'[serial_reader] Logging to {LOG_FILE}')
     safe_print('=' * 60)
     start_time = time.time()
 
@@ -74,9 +82,9 @@ def monitor_loop(ser):
                         now = time.time()
                         if line_count > 0 and now - last_heartbeat > 5:
                             elapsed = int(now - start_time)
-                            sys.stdout.write(f'[MONITOR] Connected {elapsed}s, {line_count} lines. Last: {last_callbacks}\n')
+                            sys.stdout.write(f'[serial_reader] Connected {elapsed}s, {line_count} lines. Last: {last_callbacks}\n')
                             sys.stdout.flush()
-                            f.write(f'[MONITOR] Heartbeat: {elapsed}s, {line_count} lines.\n')
+                            f.write(f'[serial_reader] Heartbeat: {elapsed}s, {line_count} lines.\n')
                             f.flush()
                             last_heartbeat = now
                     time.sleep(0.01)
@@ -86,7 +94,7 @@ def monitor_loop(ser):
                     time.sleep(1)
 
     except KeyboardInterrupt:
-        safe_print('\n[upload_and_monitor] Stopped by user.')
+        safe_print('\n[serial_reader] Stopped by user.')
     finally:
         ser.close()
 
