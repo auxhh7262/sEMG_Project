@@ -30,3 +30,6 @@ scripts/
 # Backup files
 *.bak
 *~
+# WeChat DevTools private config
+project.private.config.json
+
