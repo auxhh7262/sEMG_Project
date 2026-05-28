@@ -12,8 +12,13 @@ firmware/.pio/
 Thumbs.db
 .DS_Store
 
-# Logs
-logs/*.txt
+# Project-specific
+logs/
+skills/
+temp/        # 临时调试脚本
+
+# Docs (daily/tasks moved to temp/)
+# docs/  - let documentation into repo
 
 # Dependencies (should NOT be tracked)
 node_modules/
@@ -33,3 +38,6 @@ mini_program/miniprogram_npm/
 # Backup files
 *.bak
 *~
+
+# Local skills (custom, not to be tracked)
+skills/
