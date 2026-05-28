@@ -10,3 +10,7 @@
 
 # Local libraries (use lib_deps in platformio.ini instead)
 lib/
+
+# IDE generated
+compile_commands.json
+
