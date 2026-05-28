@@ -57,44 +57,64 @@ void ProtocolHandler::tick() { /* 占位 */ }
 
 void ProtocolHandler::handleJsonCommand(uint8_t clientNum, const char* json) {
     LOG("[PROTO] RX JSON: %s\n", json);
-    DynamicJsonDocument doc(1024);
+    // Stack allocation - NOT static, to avoid residual state from previous parse
+    StaticJsonDocument<512> doc;
+    LOG("[PROTO] doc allocated (stack), attempting deserialize...\n");
     DeserializationError err = deserializeJson(doc, json);
+    LOG("[PROTO] deserializeJson returned, err=%s\n", err ? err.c_str() : "OK");
     if (err) { LOG("[PROTO] JSON parse error: %s\n", err.c_str()); return; }
 
     const char* cmd = doc["cmd"];
+    LOG("[PROTO] cmd field accessed\n");
     if (!cmd) { LOG("[PROTO] No cmd field\n"); return; }
-
+    
     int seq = -1;
-    if (doc["seq"].is<int>()) seq = doc["seq"].as<int>();
-    else if (doc["seq"].is<const char*>()) seq = atoi(doc["seq"].as<const char*>());
-    else { String seqStr = doc["seq"]; if (seqStr.length() > 0) seq = seqStr.toInt(); }
+    if (doc["seq"].is<int>()) { seq = doc["seq"].as<int>(); LOG("[PROTO] seq is int: %d\n", seq); }
+    else if (doc["seq"].is<const char*>()) { seq = atoi(doc["seq"].as<const char*>()); LOG("[PROTO] seq is string: %d\n", seq); }
+    else { LOG("[PROTO] seq not found, default -1\n"); }
     LOG("[PROTO] cmd='%s' seq=%d\n", cmd, seq);
 
     if (strcmp(cmd, "start_stream") == 0) {
+        // �?方案2：先�?ACK，再执行逻辑（避免小程序超时�?
+        if (seq >= 0) { char ack[128]; snprintf(ack, sizeof(ack), "{\"cmd\":\"start_stream\",\"status\":\"ok\",\"seq\":%d}", seq); gNetManager.sendJsonTo(clientNum, ack); }
         SystemState_t st = gState.getState();
         if (st == ST_IDLE || st == ST_CALIB_DONE) gAppController.onCommandReceived(CMD_START_STREAM);
-        if (seq >= 0) { char ack[128]; snprintf(ack, sizeof(ack), "{\"cmd\":\"start_stream\",\"status\":\"ok\",\"seq\":%d}", seq); gNetManager.sendJsonTo(clientNum, ack); }
     } 
     else if (strcmp(cmd, "stop") == 0) {
-        gAppController.onCommandReceived(CMD_STOP);
+        // �?方案2：先�?ACK，再执行逻辑（避免小程序超时�?
         if (seq >= 0) { char ack[64]; snprintf(ack, sizeof(ack), "{\"cmd\":\"stop\",\"status\":\"ok\",\"seq\":%d}", seq); gNetManager.sendJsonTo(clientNum, ack); }
+        gAppController.onCommandReceived(CMD_STOP);
     } 
     else if (strcmp(cmd, "query_cz") == 0) {
         uint32_t startTs = doc["start_ts"] | 0; uint32_t endTs = doc["end_ts"] | 0xFFFFFFFF;
         gAppController.handleQueryCZ(clientNum, startTs, endTs);
         
-        // 🌟 终极保底：强制补发 ACK，且传入 false 绝不打断实时流
+        // 🌟 终极保底：强制补�?ACK，且传入 false 绝不打断实时�?
         if (seq >= 0) {
-            // 放弃建议2的 has_curve 探测，避免结构体不对齐的编译错误
+            // 放弃建议2�?has_curve 探测，避免结构体不对齐的编译错误
             char ack[128];
             snprintf(ack, sizeof(ack), "{\"cmd\":\"query_cz\",\"status\":\"ok\",\"seq\":%d}", seq);
-            gNetManager.sendJsonTo(clientNum, ack); // ✅ 传入 false，核心修复点！
+            gNetManager.sendJsonTo(clientNum, ack); // �?传入 false，核心修复点�?
         }
     } 
     else if (strcmp(cmd, "save_record") == 0) { gAppController.handleSaveRecord(clientNum, doc.as<JsonObject>()); if (seq >= 0) { char ack[128]; snprintf(ack, sizeof(ack), "{\"cmd\":\"save_record\",\"status\":\"ok\",\"seq\":%d}", seq); gNetManager.sendJsonTo(clientNum, ack); } } 
     else if (strcmp(cmd, "list_records") == 0) { gAppController.handleListRecords(clientNum); if (seq >= 0) { char ack[128]; snprintf(ack, sizeof(ack), "{\"cmd\":\"list_records\",\"status\":\"ok\",\"seq\":%d}", seq); gNetManager.sendJsonTo(clientNum, ack); } } 
     else if (strcmp(cmd, "delete_record") == 0) { uint32_t slotAddr = doc["slot"] | 0; gAppController.handleDeleteRecord(clientNum, slotAddr); if (seq >= 0) { char ack[128]; snprintf(ack, sizeof(ack), "{\"cmd\":\"delete_record\",\"status\":\"ok\",\"seq\":%d}", seq); gNetManager.sendJsonTo(clientNum, ack); } } 
     else if (strcmp(cmd, "list_curves") == 0) { uint8_t gender = doc["gender"] | 0; uint8_t handedness = doc["handedness"] | 0; uint8_t age = doc["age"] | 0; gAppController.handleListCurves(clientNum, gender, handedness, age); if (seq >= 0) { char ack[128]; snprintf(ack, sizeof(ack), "{\"cmd\":\"list_curves\",\"status\":\"ok\",\"seq\":%d}", seq); gNetManager.sendJsonTo(clientNum, ack); } } 
+    else if (strcmp(cmd, "save_user") == 0) {
+        uint8_t slot = doc["slot"] | 0;
+        const char* userId = doc["user_id"] | "user_0";
+        const char* name = doc["name"] | "";
+        uint8_t age = doc["age"] | 0;
+        uint8_t gender = doc["gender"] | 0;
+        uint8_t handedness = doc["handedness"] | 0;
+        bool ok = gStorage.SaveUserProfile(slot, userId, name, age, gender, handedness);
+        LOG("[PROTO] save_user slot=%d name=%s ok=%s\n", slot, name, ok ? "YES" : "NO");
+        char buf[128];
+        if (seq >= 0) snprintf(buf, sizeof(buf), "{\"cmd\":\"user_saved\",\"ok\":%s,\"slot\":%d,\"seq\":%d}", ok ? "true" : "false", slot, seq);
+        else snprintf(buf, sizeof(buf), "{\"cmd\":\"user_saved\",\"ok\":%s,\"slot\":%d}", ok ? "true" : "false", slot);
+        gNetManager.sendJsonTo(clientNum, buf);
+    }
     else if (strcmp(cmd, "load_user") == 0) {
         uint8_t slot = doc["slot"] | 0; char userId[16] = {0}; char name[32] = {0}; uint8_t age = 0, gender = 0, handedness = 0;
         if (gStorage.LoadUserProfile(slot, userId, name, &age, &gender, &handedness)) {
@@ -110,15 +130,36 @@ void ProtocolHandler::handleJsonCommand(uint8_t clientNum, const char* json) {
         }
     } 
     else if (strcmp(cmd, "save_calib") == 0) { gAppController.handleSaveCalib(clientNum, seq); } 
-    else if (strcmp(cmd, "get_calib_result") == 0) { gAppController.handleGetCalibResult(clientNum, seq); } 
+    else if (strcmp(cmd, "get_calib_result") == 0) { LOG("[PROTO] calling handleGetCalibResult client=%d seq=%d\n", clientNum, seq); gAppController.handleGetCalibResult(clientNum, seq); LOG("[PROTO] handleGetCalibResult returned\n"); } 
     else if (strcmp(cmd, "start_calib") == 0) {
+        LOG("[PROTO] start_calib branch reached\n");
         const char* phase = doc["phase"] | "REST";
-        if (strcmp(phase, "MAX") == 0) gAppController.onCommandReceived(CMD_START_CALIB_MAX); else gAppController.onCommandReceived(CMD_START_CALIB);
-        if (seq >= 0) { char ack[64]; snprintf(ack, sizeof(ack), "{\"cmd\":\"start_calib\",\"status\":\"ok\",\"seq\":%d,\"phase\":\"%s\"}", seq, phase); gNetManager.sendJsonTo(clientNum, ack); }
+        LOG("[PROTO] phase extracted: '%s'\n", phase);
+        // �?方案2：先�?ACK，再执行逻辑（本次修�?MAX 阶段超时的核心）
+        if (seq >= 0) { char ack[64]; snprintf(ack, sizeof(ack), "{\"cmd\":\"start_calib\",\"status\":\"ok\",\"seq\":%d,\"phase\":\"%s\"}", seq, phase); gNetManager.sendJsonTo(clientNum, ack); LOG("[PROTO] ACK sent\n"); }
+        LOG("[PROTO] about to call onCommandReceived, phase=%s\n", phase);
+        if (strcmp(phase, "MAX") == 0) { LOG("[PROTO] calling CMD_START_CALIB_MAX\n"); gAppController.onCommandReceived(CMD_START_CALIB_MAX); }
+        else { LOG("[PROTO] calling CMD_START_CALIB\n"); gAppController.onCommandReceived(CMD_START_CALIB); }
+        LOG("[PROTO] onCommandReturned\n");
     } 
     else if (strcmp(cmd, "start_db_feature") == 0) { gAppController.handleStartDbFeature(clientNum, doc.as<JsonObject>()); if (seq >= 0) { char ack[128]; snprintf(ack, sizeof(ack), "{\"cmd\":\"start_db_feature\",\"status\":\"ok\",\"seq\":%d}", seq); gNetManager.sendJsonTo(clientNum, ack); } } 
     else if (strcmp(cmd, "raw_phase_done") == 0) { gAppController.handleRawPhaseDone(clientNum); if (seq >= 0) { char ack[128]; snprintf(ack, sizeof(ack), "{\"cmd\":\"raw_phase_done\",\"status\":\"ok\",\"seq\":%d}", seq); gNetManager.sendJsonTo(clientNum, ack); } } 
     else if (strcmp(cmd, "db_mark") == 0) { gAppController.handleDbMark(clientNum, doc.as<JsonObject>()); if (seq >= 0) { char ack[128]; snprintf(ack, sizeof(ack), "{\"cmd\":\"db_mark\",\"status\":\"ok\",\"seq\":%d}", seq); gNetManager.sendJsonTo(clientNum, ack); } } 
     else if (strcmp(cmd, "flash_diagnose") == 0) { LOG("[PROTO] flash_diagnose command received\n"); FlashDriver::instance().diagnoseJedec(); if (seq >= 0) { char ack[64]; snprintf(ack, sizeof(ack), "{\"cmd\":\"flash_diagnose\",\"status\":\"ok\",\"seq\":%d}", seq); gNetManager.sendJsonTo(clientNum, ack); } }
+    // 🔴 修复问题1：添加曲线拟合指令支�?
+    else if (strcmp(cmd, "gen_personal_curve") == 0) {
+        uint8_t curveId = doc["curve_id"] | 0;
+        float baselineRms = doc["baseline_rms"] | 0.0f;
+        float baselineMdf = doc["baseline_mdf"] | 0.0f;
+        LOG("[PROTO] gen_personal_curve curve_id=%d baseline_rms=%.2f baseline_mdf=%.1f\n", curveId, baselineRms, baselineMdf);
+        gAppController.handleGenPersonalCurve(clientNum, curveId, baselineRms, baselineMdf);
+        if (seq >= 0) {
+            char ack[128];
+            snprintf(ack, sizeof(ack), "{\"cmd\":\"gen_personal_curve\",\"status\":\"ok\",\"seq\":%d}", seq);
+            gNetManager.sendJsonTo(clientNum, ack);
+        }
+    }
     else { LOG("[PROTO] Unknown cmd: %s\n", cmd); if (seq >= 0) { char ack[64]; snprintf(ack, sizeof(ack), "{\"cmd\":\"error\",\"err\":\"unknown_cmd\",\"seq\":%d}", seq); gNetManager.sendJsonTo(clientNum, ack); } }
 }
+
+

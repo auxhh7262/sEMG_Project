@@ -58,6 +58,8 @@ private:
     WebSocketsServer _tcpServer;
     bool _tcpStreaming;
     uint8_t _currentClient;
+    uint32_t _lastTcpRxMs;
+    uint32_t _lastPingMs;
     char _tcpJsonBuf[224];
 
     void _getTimestamp(uint32_t &sec, uint16_t &ms);

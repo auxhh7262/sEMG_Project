@@ -53,27 +53,26 @@ Page({
 
   // 注册校准回调
   _registerCalibCallbacks() {
-    if (!this._realtimeHandler) {
-      this._realtimeHandler = (data) => {
-        if (this.data.phase === PHASE.RESTING) {
-          this.setData({ liveRestRms: data.rms, liveRestMdf: data.mdf });
-        } else if (this.data.phase === PHASE.MAX_CONTRACT) {
-          this.setData({ liveMaxRms: data.rms, liveMaxMdf: data.mdf });
-        }
-      };
-      wifiClient.onRealtimeData(this._realtimeHandler);
-    }
+    // 🟡 修复问题4：先注销再注册，防止重复监听
+    this._unregisterCalibCallbacks();
     
-    if (!this._calibHandler) {
-      this._calibHandler = (data) => {
-        if (data.phase === 'REST') {
+    this._realtimeHandler = (data) => {
+      if (this.data.phase === PHASE.RESTING) {
+        this.setData({ liveRestRms: data.rms, liveRestMdf: data.mdf });
+      } else if (this.data.phase === PHASE.MAX_CONTRACT) {
+        this.setData({ liveMaxRms: data.rms, liveMaxMdf: data.mdf });
+      }
+    };
+    wifiClient.onRealtimeData(this._realtimeHandler);
+    
+    this._calibHandler = (data) => {
+      if (data.phase === 'REST') {
           this.setData({ liveRestRms: data.rms, liveRestMdf: data.mdf });
         } else if (data.phase === 'MAX') {
           this.setData({ liveMaxRms: data.rms, liveMaxMdf: data.mdf });
         }
       };
-      wifiClient.onCalibData(this._calibHandler);
-    }
+    wifiClient.onCalibData(this._calibHandler);
   },
 
   // 取消注册
@@ -256,17 +255,21 @@ Page({
     });
   },
   async startCalibration() {
+    logger.log('[calibrate] startCalibration entered');
     const user = getCurrentUser();
-    if (!user) { this.onFirstUseCalibrate(); return; }
-    if (!this.data.connected) { wx.showToast({ title: '请先连接设备', icon: 'none' }); return; }
-    if (!this._checkWifi()) return;
+    if (!user) { logger.log('[calibrate] no user'); this.onFirstUseCalibrate(); return; }
+    if (!this.data.connected) { logger.log('[calibrate] not connected'); wx.showToast({ title: '请先连接设备', icon: 'none' }); return; }
+    if (!this._checkWifi()) { logger.log('[calibrate] wifi check failed'); return; }
 
     this._resetCalib();
     this.setData({ phase: PHASE.RESTING, statusText: '请保持放松，采集静息态数据...', countdown: REST_DURATION });
 
     try {
+      logger.log('[calibrate] sending start_calib REST cmd...');
       await wifiClient.sendCmd('start_calib', { phase: 'REST', slot: user.slot });
+      logger.log('[calibrate] start_calib REST ack received');
     } catch(e) {
+      logger.log('[calibrate] start_calib REST failed: ' + (e.message || e));
       wx.showToast({ title: '启动校准失败', icon: 'none' }); this._resetCalib(); return;
     }
 
@@ -298,12 +301,18 @@ Page({
 
   // ===================== MAX 阶段 =====================
   async onStartMax() {
+    logger.log('[calibrate] onStartMax clicked');
     if (!this._checkWifi()) return;
     const user = getCurrentUser();
     this.setData({ phase: PHASE.MAX_CONTRACT, statusText: '请全力握紧拳头！', countdown: MAX_DURATION });
+    
+    // ✅ 显式发送 phase: "MAX"，让固件执行 MAX 阶段
     try {
-      await wifiClient.sendCmd('start_calib', { phase: 'MAX', slot: user.slot });
+      logger.log('[calibrate] sending start_calib MAX cmd...');
+      await wifiClient.sendQuery('start_calib', { phase: 'MAX', slot: user.slot });
+      logger.log('[calibrate] start_calib MAX ack received');
     } catch(e) {
+      logger.log('[calibrate] start_calib MAX failed: ' + (e.message || e));
       wx.showToast({ title: '启动MAX失败', icon: 'none' }); this._resetCalib(); return;
     }
     await this._runMaxCountdown();
@@ -331,35 +340,26 @@ Page({
   },
 
   async _fetchResult() {
+    logger.log('[calibrate] _fetchResult');
     const user = getCurrentUser();
     try {
       const res = await wifiClient.sendCmd('get_calib_result', { slot: user.slot });
+      logger.log('[calibrate] _fetchResult got: ' + JSON.stringify(res));
       this.setData({ calibData: res });
       this._validateResult(res);
     } catch(e) {
+      logger.log('[calibrate] _fetchResult failed: ' + (e.message || e));
       wx.showToast({ title: '读取结果失败', icon: 'none' }); this._resetCalib();
     }
   },
 
   _validateResult(data) {
-    const { rest_rms, max_rms, rest_mdf, max_mdf, validateResult } = data;  
-    // ✅ 优先使用固件校验结果
-    if (validateResult !== undefined) {
-      const ok = validateResult === 1;
-      const rms_ok = max_rms > rest_rms * 2;
-      const mdf_ok = rest_mdf >= 20 && rest_mdf <= 200 && max_mdf >= 20 && max_mdf <= 200;
-      this.setData({ 
-        validation: { ok, rms_ok, mdf_ok, mdf_drop_pct: 0 } 
-      });
-      return;
-    }
-    
-    // 兜底：客户端校验（修正后）
-    const rms_ok = max_rms > rest_rms * 2;
-    const mdf_ok = max_mdf > rest_mdf;  // ✅ 修正：MDF上升
-    this.setData({ 
-      validation: { ok: rms_ok && mdf_ok, rms_ok, mdf_ok, mdf_drop_pct: 0 } 
-    });
+    const { rest_rms, max_rms, rest_mdf, max_mdf } = data;
+    // ✅ 与固件一致的校验规则 (rest_mdf/ref_mdf范围检查 + ref_rms >= 2*rest 且 >= 0.5mV)
+    const rms_ok = max_rms > rest_rms * 2.0 && max_rms >= 0.5;  // 必须>=2倍且>=0.5mV
+    const mdf_ok = rest_mdf >= 10 && rest_mdf <= 250 && max_mdf >= 10 && max_mdf <= 250;
+    const ok = rms_ok && mdf_ok;
+    this.setData({ validation: { ok, rms_ok, mdf_ok, mdf_drop_pct: 0 } });
   },
 
   async onConfirmResult() {
@@ -378,9 +378,17 @@ Page({
     }
   },
 
-  onRetryCalib() {
+  async onRetryCalib() {
+    logger.log('[calibrate] onRetryCalib clicked');
+    // 点"重新校准"直接启动校准，无需再点"开始校准"
     this._resetCalib();
-    this.setData({ phase: PHASE.IDLE, statusText: '点击下方按钮开始校准', liveRestRms: null, liveRestMdf: null, liveMaxRms: null, liveMaxMdf: null });
+    logger.log('[calibrate] reset done, connected=' + this.data.connected + ', phase=' + this.data.phase);
+    try {
+      await this.startCalibration();
+      logger.log('[calibrate] startCalibration returned');
+    } catch(e) {
+      logger.log('[calibrate] onRetryCalib error: ' + (e.message || e));
+    }
   },
 
   // ===================== 曲线拟合流程 =====================
@@ -426,11 +434,23 @@ Page({
   async _execFit(curve) {
     this.setData({ phase: PHASE.FITTING, statusText: '执行拟合...', matchedCurve: curve });
     try {
-      // [修复] save_curve 只需要 curve_id，固件从RAM读取校准数据
-      await wifiClient.sendCmd('save_curve', { curve_id: curve.curve_id });
+      // 🔴 修复问题1：指令名改为 gen_personal_curve，参数含 baseline_rms/mdf
+      await wifiClient.sendCmd('gen_personal_curve', {
+        curve_id: curve.curve_id,
+        baseline_rms: this.data.calibData.rest_rms,
+        baseline_mdf: this.data.calibData.rest_mdf
+      });
       this.setData({ phase: PHASE.FIT_DONE, fitResult: { ok: true, has_curve: true, curve_id: curve.curve_id, curve_name: curve.name } });
       wx.showModal({ title: '拟合完成', content: `已使用 "${curve.name || '曲线' + curve.curve_id}" 完成个人化拟合`, showCancel: false });
-    } catch(e) { wx.showToast({ title: '拟合保存失败', icon: 'none' }); this._saveNoCurve(); }
+    } catch(e) {
+      // 🔴 修复：拟合失败不影响校准数据，明确告知用户系统回退默认算法
+      wx.showModal({
+        title: '拟合失败',
+        content: '校准数据已保存，但未生成个性化曲线。\n系统将使用默认算法计算疲劳度。',
+        showCancel: false
+      });
+      this._saveNoCurve();
+    }
   },
 
   _saveNoCurve() {
@@ -439,6 +459,7 @@ Page({
 
   // ===================== 清理 =====================
   _resetCalib() {
+    logger.log('[calibrate] _resetCalib');
     if (this._restInterval) { clearInterval(this._restInterval); this._restInterval = null; }
     if (this._maxInterval)  { clearInterval(this._maxInterval);  this._maxInterval  = null; }
     if (this._restHandler)  { wifiClient.offCalibData(this._restHandler); this._restHandler = null; }

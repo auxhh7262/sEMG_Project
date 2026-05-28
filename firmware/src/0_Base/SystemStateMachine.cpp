@@ -18,7 +18,7 @@ bool StateManager::_validTransition(SystemState_t from, SystemState_t to)
     if (from == ST_CALIB_WAIT) return (to == ST_CALIB_MAX || to == ST_IDLE);
     if (from == ST_CALIB_MAX) return (to == ST_CALIB_DONE || to == ST_IDLE);
     if (from == ST_CALIB_DONE) return (to == ST_MONITORING || to == ST_IDLE);
-    if (from == ST_MONITORING) return (to == ST_IDLE || to == ST_DB_FEATURE);
+    if (from == ST_MONITORING) return (to == ST_IDLE || to == ST_CALIB_REST || to == ST_DB_FEATURE);
     if (from == ST_DB_FEATURE) return (to == ST_IDLE);
     if (from == ST_ERROR) return (to == ST_IDLE);
     return false;
@@ -119,6 +119,16 @@ void StateManager::setError(const char* msg)
 const char* StateManager::getErrorMsg() const
 {
     return _errorMsg;
+}
+
+void StateManager::forceReset()
+{
+    _state = ST_IDLE;
+    _prevState = ST_BOOT;
+    _phaseActive = false;
+    _phaseDurationMs = 0;
+    _errorMsg[0] = '\0';
+    LOG("[STATE] Force reset to IDLE\n");
 }
 
 void StateManager::tick()

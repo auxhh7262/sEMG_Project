@@ -18,6 +18,7 @@ public:
 
     void setError(const char* msg);
     const char* getErrorMsg() const;
+    void forceReset();  // 强制重置到IDLE，绕过状态转换检查
 
     void tick();  // 预留给周期性检查（暂未使用）
 

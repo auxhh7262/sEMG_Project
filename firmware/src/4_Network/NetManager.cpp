@@ -20,7 +20,7 @@ static void (*_cmdCallback)(uint8_t, const char*) = nullptr;
 NetManager::NetManager()
     : _bleServer(nullptr), _wifiConnected(false), _wifiRetryTimer(0),
       _isNtpSynced(false), _tcpServer(8888), _tcpStreaming(false),
-      _currentClient(255), _ntpBaseMillis(0), _ntpBaseSeconds(0),
+      _currentClient(255), _lastTcpRxMs(0), _lastPingMs(0), _ntpBaseMillis(0), _ntpBaseSeconds(0),
       _eepromCredsTried(false), _dhcpWaitDone(false), _dhcpGotIp(false),
       _bleIpPushPending(false), _ntpPending(false), _ntpRequestTime(0),
       _lastDisconnectLogMs(0), _autoSeq(-1), _dhcpStableStart(0) {
@@ -41,6 +41,7 @@ void NetManager::init(BleConfigServer* bleServer) {
             case WStype_CONNECTED:
                 LOG("[TCP] CONNECT: client %d (prev=%d)\n", (int)num, (int)_currentClient);
                 if (_currentClient != 255 && _currentClient != num) {
+                    LOG("[TCP] Forcing disconnect of old client %d\n", (int)_currentClient);
                     _tcpServer.disconnect(_currentClient);
                 }
                 _currentClient = num;
@@ -48,15 +49,34 @@ void NetManager::init(BleConfigServer* bleServer) {
                 break;
 
             case WStype_DISCONNECTED: {
+                // 旧客户端断开：忽略（固件重启后 WebSocket 服务器里残留的旧连接）
                 if (num != _currentClient) break;
-                LOG("[TCP] DISCONNECT: client %d\n", (int)num);
+                // ✅ 相同客户端 1 秒内只记录一次，避免残留连接刷屏
+                static uint32_t _lastDiscMs[8] = {0};
+                uint32_t nowMs = millis();
+                if (nowMs - _lastDiscMs[num & 0x07] >= 1000) {
+                    _lastDiscMs[num & 0x07] = nowMs;
+                    LOG("[TCP] DISCONNECT: client %d\n", (int)num);
+                }
                 _tcpStreaming = false;
                 _currentClient = 255;
                 break;
             }
+
+            case WStype_PING:
+                LOG("[TCP] PING from client %d\n", (int)num);
+                break;
+            case WStype_PONG:
+                LOG("[TCP] PONG from client %d\n", (int)num);
+                break;
+
+            default:
+                LOG("[TCP] EVENT type=%d from client %d\n", (int)type, (int)num);
+                break;
             case WStype_TEXT:
                 if (length > 0) {
                     char* json = (char*)payload;
+                    _lastTcpRxMs = millis();
                     LOG("[NET] RX (client %d, len=%d): %.128s\n", (int)num, (int)length, json);
 
                     // Auto-ACK for commands with seq
@@ -180,6 +200,15 @@ void NetManager::tick() {
             if (!_isNtpSynced && !_ntpPending && (millis() - _ntpRequestTime > 60000)) {
                 syncTime();
             }
+        }
+    }
+    // ✅ TCP 存活检测：仅在空闲时检测（流式传输中连接一定是活的）
+    if (!_tcpStreaming && _currentClient != 255) {
+        uint32_t now = millis();
+        if (now - _lastTcpRxMs >= 30000 && _lastTcpRxMs > 0) {
+            LOG("[TCP] Idle %ds, disconnecting stale client %d\n", (now - _lastTcpRxMs) / 1000, _currentClient);
+            _tcpServer.disconnect(_currentClient);
+            _currentClient = 255;
         }
     }
     _tcpServer.loop();
@@ -329,11 +358,17 @@ void NetManager::setAutoSeq(int seq) { _autoSeq = seq; }
 void NetManager::sendJsonTo(uint8_t clientNum, const char* json) {
     if (!json) return;
     if (strlen(json) > 512) return;
-    if (_currentClient == 255 || clientNum != _currentClient) return;
-
+    if (_currentClient == 255) {
+        LOG("[NET] sendJsonTo blocked: no client connected\n");
+        return;
+    }
+    if (clientNum != _currentClient) {
+        LOG("[NET] sendJsonTo clientNum mismatch: cmd=%d current=%d (force sending to cmd=%d)\n", clientNum, _currentClient, clientNum);
+    }
     char sendBuf[600];
     int len = snprintf(sendBuf, sizeof(sendBuf), "%s\n", json);
     _tcpServer.sendTXT(clientNum, sendBuf, (size_t)len);
+    _lastTcpRxMs = millis(); // TX 也算活跃，防止超时断连
 }
 
 void NetManager::setCommandCallback(void (*callback)(uint8_t, const char*)) {

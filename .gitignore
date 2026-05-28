@@ -1,7 +1,5 @@
 # Firmware build artifacts
 firmware/.pio/
-
-# PlatformIO
 .pio/
 
 # IDE
@@ -12,32 +10,23 @@ firmware/.pio/
 Thumbs.db
 .DS_Store
 
-# Project-specific
-logs/
-skills/
-temp/        # 临时调试脚本
+# Python cache (recursive)
+__pycache__/
+**/__pycache__/
+*.pyc
 
-# Docs (daily/tasks moved to temp/)
-# docs/  - let documentation into repo
-
-# Dependencies (should NOT be tracked)
+# Dependencies
 node_modules/
 firmware/node_modules/
 mini_program/node_modules/
-
-# Python cache
-__pycache__/
-*.pyc
-
-# Node
-node_modules/
-
-# Mini program build
 mini_program/miniprogram_npm/
+
+# Local (not tracked)
+logs/
+skills/
+temp/
+scripts/
 
 # Backup files
 *.bak
 *~
-
-# Local skills (custom, not to be tracked)
-skills/

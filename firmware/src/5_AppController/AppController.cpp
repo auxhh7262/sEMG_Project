@@ -63,28 +63,34 @@ void AppController::onCommandReceived(AppCommand_t cmd)
     switch (cmd) {
         case CMD_START_CALIB: {
             SystemState_t st = _stateMgr->getState();
-            if (st == ST_MONITORING) {
-                LOG("[CTRL] Already in monitoring, ignore CMD_START_CALIB\n");
-                break;
+            LOG("[CTRL] CMD_START_CALIB: from state=%d\n", st);
+            // 如果不在IDLE，先回到IDLE清理运行状态
+            if (st != ST_IDLE) {
+                _stateMgr->transitionTo(ST_IDLE);
             }
-            if (st == ST_ERROR) {
-                LOG("[CTRL] Error state, must STOP first before new calibration\n");
-                break;
+            // 如果状态机卡在ERROR（上面transitionTo可能失败），强制清理
+            if (_stateMgr->getState() != ST_IDLE) {
+                LOG("[CTRL] Force reset from %s to IDLE\n", _stateMgr->getStateName());
+                _stateMgr->forceReset();
             }
-            if (st == ST_IDLE) {
-                _calibMgr->reset();
-                _calibMgr->beginPhase();
-                _stateMgr->transitionTo(ST_CALIB_REST);
-                _stateMgr->startCalibPhase(CALIB_REST_SEC);
-                LOG("[CTRL] Calibration started: REST phase %ds\n", CALIB_REST_SEC);
-            }
+            _calibMgr->reset();
+            _signalProc->clearCalibration();
+            _calibMgr->beginPhase();
+            _stateMgr->transitionTo(ST_CALIB_REST);
+            _stateMgr->startCalibPhase(CALIB_REST_SEC);
+            LOG("[CTRL] Calibration REST phase started %ds\n", CALIB_REST_SEC);
             break;
         }
         case CMD_START_CALIB_MAX: {
+            LOG("[CALIB] CMD_START_CALIB_MAX reached\n");
             SystemState_t st = _stateMgr->getState();
+            LOG("[CALIB] CMD_START_CALIB_MAX: state=%d (expected CALIB_WAIT=%d)\n", st, ST_CALIB_WAIT);
             if (st == ST_CALIB_WAIT) {
+                LOG("[CALIB] about to resetEMA\n");
                 _signalProc->resetEMA();
+                LOG("[CALIB] about to beginPhase\n");
                 _calibMgr->beginPhase();
+                LOG("[CALIB] beginPhase done\n");
                 _stateMgr->transitionTo(ST_CALIB_MAX);
                 _stateMgr->startCalibPhase(CALIB_MAX_SEC);
                 LOG("[CTRL] Calib MAX phase started (app-triggered) %ds\n", CALIB_MAX_SEC);
@@ -165,7 +171,13 @@ void AppController::_handleCalibRestState(void)
         _netMgr->sendData(rms, mdf, 0.0f, 0, 0.0f, true, "REST");
     }
 
-    if (_stateMgr->isCalibPhaseComplete()) {
+    bool phaseDone = _stateMgr->isCalibPhaseComplete();
+    static uint32_t _dbg_check = 0;
+    if (!_dbg_check || phaseDone) {
+        _dbg_check = 1;
+        LOG("[CTRL] isCalibPhaseComplete check: phaseDone=%d, elapsed>=10000ms?\n", phaseDone);
+    }
+    if (phaseDone) {
         _calibMgr->endPhase(true);
         LOG("[CTRL] Calib REST phase done. Waiting for app to trigger MAX...\n");
         _stateMgr->transitionTo(ST_CALIB_WAIT);
@@ -603,7 +615,7 @@ void AppController::handleGetCalibResult(uint8_t clientNum, int seq)
     LOG("[CTRL] validateResult=%d\n", valid);
 
     char buf[512];
-    snprintf(buf, sizeof(buf), "{\"cmd\":\"calib_result\",\"ok\":true,\"seq\":%d,\"rest_rms\":%.2f,\"max_rms\":%.2f,\"rest_mdf\":%.1f,\"max_mdf\":%.1f,\"peak_rms\":%.2f,\"valid\":%d}", seq, calib.rest_rms, calib.ref_rms, calib.rest_mdf, calib.ref_mdf, calib.peak_rms, valid ? 1 : 0);
+    snprintf(buf, sizeof(buf), "{\"cmd\":\"calib_result\",\"ok\":true,\"seq\":%d,\"rest_rms\":%.2f,\"max_rms\":%.2f,\"rest_mdf\":%.1f,\"max_mdf\":%.1f,\"peak_rms\":%.2f,\"validateResult\":%d}", seq, calib.rest_rms, calib.ref_rms, calib.rest_mdf, calib.ref_mdf, calib.peak_rms, valid ? 1 : 0);
 
     LOG("[CTRL] sendJsonTo start, buflen=%d\n", (int)strlen(buf));
     _netMgr->sendJsonTo(clientNum, buf);

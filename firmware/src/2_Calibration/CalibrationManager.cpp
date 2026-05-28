@@ -79,10 +79,12 @@ void CalibrationManager::endPhase(bool isRestPhase) {
 
 // ==================== REST阶段：丢弃前3秒不稳定数据 ====================
 void CalibrationManager::_endRestPhase() {
+    LOG("[CALIB] _endRestPhase entered\n");
     // [v3.9.11] 丢弃前3秒（30个样本@10Hz），消除EMA残留和接触稳定期
     const int DISCARD_SAMPLES = 30;  // 3秒 @ 10Hz
     int startIdx = (_sampleCount > DISCARD_SAMPLES + 10) ? DISCARD_SAMPLES : 0;
     int count = (int)_sampleCount - startIdx;
+    LOG("[CALIB] _endRestPhase: count=%d, startIdx=%d\n", count, startIdx);
 
     if (count < 3) {
         // 丢弃后样本不足，退化为全样本
@@ -95,6 +97,7 @@ void CalibrationManager::_endRestPhase() {
     float min_rms = 1e9f, max_rms = 0.0f;
     float min_mdf = 1e9f, max_mdf = 0.0f;
 
+    LOG("[CALIB] _endRestPhase: looping samples\n");
     for (int i = startIdx; i < startIdx + count; i++) {
         avg_rms += _samples[i].rms;
         avg_mdf += _samples[i].mdf;
@@ -103,6 +106,7 @@ void CalibrationManager::_endRestPhase() {
         if (_samples[i].mdf < min_mdf) min_mdf = _samples[i].mdf;
         if (_samples[i].mdf > max_mdf) max_mdf = _samples[i].mdf;
     }
+    LOG("[CALIB] _endRestPhase: loop done, computing avg\n");
     avg_rms /= (float)count;
     avg_mdf /= (float)count;
 
@@ -114,6 +118,7 @@ void CalibrationManager::_endRestPhase() {
 
     LOG("[CALIB] REST done: RMS avg=%.2f mV (CV=%.1f%%), MDF avg=%.1f Hz (CV=%.1f%%), N=%d(discard=%d, used=%d)\n",
         avg_rms, rms_cv, avg_mdf, mdf_cv, _sampleCount, startIdx, count);
+    LOG("[CALIB] REST done - SAFE checkpoint\n");
 }
 
 // ==================== MAX阶段：上升沿检测 + 稳定期均值 ====================
