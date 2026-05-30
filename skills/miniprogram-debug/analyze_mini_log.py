@@ -1,147 +1,177 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-emg-miniprogram-debug
-小程序日志分析脚本
-读取 logs/mini/mini_log.txt，扫描常见问题模式
+sEMG miniprogram log analyzer
+Reads the latest .txt log file from logs/mini/ and reports structured findings.
 """
+
+import sys
 import os
 import re
-import sys
+import glob
+import time
 from pathlib import Path
-from datetime import datetime
 
-# ── 路径配置 ────────────────────────────────────────────────────────────────
+# ── Config ────────────────────────────────────────────────────────────────────
 SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_DIR = SCRIPT_DIR.parent.parent    # skills/miniprogram-debug -> skills -> project root
-MINI_LOG_DIR = PROJECT_DIR / "logs" / "mini"
+LOG_DIR    = PROJECT_DIR / "logs" / "mini"
 
-# ── 问题模式定义 ────────────────────────────────────────────────────────────
+# ── Severity levels (ASCII only, no Unicode emojis) ─────────────────────────
+CRIT  = "[CRIT]"   # crash / deadlock
+HIGH  = "[HIGH]"   # timeout / fatal error
+MED   = "[MED ]"   # warning / anomaly
+LOW   = "[LOW ]"   # info
+OK    = "[OK ]"     # expected / healthy
+
+# ── Pattern definitions ────────────────────────────────────────────────────────
 PATTERNS = [
-    # 🔴 严重/高优先级
-    ("🔴 严重", "连接失败", r"connect\s+fail|WiFi\s+error|connection\s+failed", "检查WiFi连接和设备IP"),
-    ("🔴 高",   "命令超时",   r"CMD_TIMEOUT|timeout",                    "检查固件是否正常响应"),
-    ("🔴 高",   "JSON解析失败", r"parse\s+error|JSON\s+error",           "检查JSON格式是否正确"),
-    ("🔴 高",   "WebSocket断连", r"disconnect|onClose|close",           "检查网络连接和心跳配置"),
+    # (severity, label, regex, hint)
+    (CRIT,  "Connection failed",
+     re.compile(r"connect\s+fail|WiFi\s+error|connection\s+failed", re.IGNORECASE),
+     "Check WiFi connection and device IP"),
 
-    # 🟡 中等优先级
-    ("🟡 中等", "状态异常",     r"state\s+error|invalid\s+state",        "检查状态机转换逻辑"),
-    ("🟡 中等", "数据异常",     r"data\s+error|RMS\s*<|MDF\s*<",       "检查传感器连接和信号质量"),
-    ("🟡 中等", "缓冲区溢出",   r"buffer\s+overflow|overflow",          "检查缓冲区大小是否足够"),
+    (HIGH,  "Command timeout",
+     re.compile(r"CMD_TIMEOUT|timeout", re.IGNORECASE),
+     "Check if firmware is responding normally"),
 
-    # 🟢 正常/低优先级
-    ("🟢 正常", "连接成功",     r"connect\s+success|ready|connected",   "连接正常"),
-    ("🟢 正常", "命令成功",     r"CMD\s+success|ACK",                   "命令执行成功"),
+    (HIGH,  "JSON parse failed",
+     re.compile(r"parse\s+error|JSON\s+error", re.IGNORECASE),
+     "Check if JSON format is correct"),
+
+    (HIGH,  "WebSocket disconnected",
+     re.compile(r"disconnect|onClose|close", re.IGNORECASE),
+     "Check network connection and heartbeat config"),
+
+    (MED,   "State anomaly",
+     re.compile(r"state\s+error|invalid\s+state", re.IGNORECASE),
+     "Check state machine transition logic"),
+
+    (MED,   "Data anomaly",
+     re.compile(r"data\s+error|RMS\s*<|MDF\s*<", re.IGNORECASE),
+     "Check sensor connection and signal quality"),
+
+    (MED,   "Buffer overflow",
+     re.compile(r"buffer\s+overflow|overflow", re.IGNORECASE),
+     "Check if buffer size is sufficient"),
+
+    (LOW,   "Connection success",
+     re.compile(r"connect\s+success|ready|connected", re.IGNORECASE),
+     "Connection normal"),
+
+    (LOW,   "Command success",
+     re.compile(r"CMD\s+success|ACK", re.IGNORECASE),
+     "Command executed successfully"),
 ]
 
-# ── 日志分析函数 ────────────────────────────────────────────────────────────
 
 def find_latest_log():
-    """查找最新的日志文件"""
-    if not MINI_LOG_DIR.exists():
+    """Return the most recent .txt file in LOG_DIR, or None."""
+    files = glob.glob(str(LOG_DIR / "*.txt"))
+    if not files:
         return None
+    return max(files, key=os.path.getmtime)
 
-    log_files = list(MINI_LOG_DIR.glob("mini_log_*.txt"))
-    if not log_files:
-        return None
 
-    # 按修改时间排序，返回最新的
-    return max(log_files, key=lambda f: f.stat().st_mtime)
+def read_log(path):
+    """Read log file content."""
+    with open(path, "r", encoding="utf-8", errors="replace") as f:
+        return f.read()
 
-def analyze_log(log_file):
-    """分析日志文件，返回问题列表"""
-    if not log_file or not log_file.exists():
-        print(f"[ERROR] 日志文件不存在: {log_file}")
-        return []
 
-    print(f"[INFO] 分析文件: {log_file.name}")
+def analyze(path):
+    """Analyze log file and return findings + total lines."""
+    content = read_log(path)
+    lines = content.split("\n")
 
-    with open(log_file, "r", encoding="utf-8", errors="replace") as f:
-        lines = f.readlines()
+    findings = {CRIT: [], HIGH: [], MED: [], LOW: []}
 
-    print(f"[INFO] 总行数: {len(lines)}")
+    for line in lines:
+        for sev, label, pat, hint in PATTERNS:
+            if pat.search(line):
+                findings[sev].append((label, line.strip(), hint))
+                break  # one finding per line
 
-    # 按优先级收集问题
-    issues_by_level = {
-        "🔴 严重": [],
-        "🔴 高":   [],
-        "🟡 中等": [],
-        "🟢 正常": [],
-    }
+    # Deduplicate
+    seen = set()
+    for sev in findings:
+        unique = []
+        for item in findings[sev]:
+            key = item[0]
+            if key not in seen:
+                seen.add(key)
+                unique.append(item)
+        findings[sev] = unique
 
-    for line_no, line in enumerate(lines, 1):
-        line = line.strip()
-        if not line:
+    return findings, len(lines)
+
+
+def format_report(path, findings, total_lines):
+    """Format analysis report."""
+    ts = time.strftime("%Y-%m-%d %H:%M:%S")
+    mtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(os.path.getmtime(path)))
+
+    lines = []
+    lines.append("=" * 60)
+    lines.append("  sEMG Miniprogram Log Analysis Report")
+    lines.append("=" * 60)
+    lines.append(f"  File: {Path(path).name}")
+    lines.append(f"  Log time: {mtime}")
+    lines.append(f"  Report time: {ts}")
+    lines.append(f"  Total lines: {total_lines}")
+    lines.append("")
+
+    count = sum(len(v) for v in findings.values())
+    if count == 0:
+        lines.append("[OK] No known problem patterns found")
+        lines.append("")
+        return "\n".join(lines)
+
+    for sev in [CRIT, HIGH, MED, LOW]:
+        items = findings[sev]
+        if not items:
             continue
+        
+        # Map severity to label (ASCII only)
+        sev_label = {"[CRIT]": "[CRIT] Severe", "[HIGH]": "[HIGH] High",
+                     "[MED ]": "[MED ] Medium", "[LOW ]": "[LOW ] Low"}.get(sev, sev)
+        
+        lines.append(f"  {sev_label} ({len(items)} items)")
+        for i, (label, line, hint) in enumerate(items, 1):
+            lines.append(f"    {i}. {label}")
+            lines.append(f"       Log: {line[:120]}")
+            lines.append(f"       Suggestion: {hint}")
+        lines.append("")
 
-        for level, pattern_name, pattern, suggestion in PATTERNS:
-            if re.search(pattern, line, re.IGNORECASE):
-                issues_by_level[level].append({
-                    "line": line_no,
-                    "name": pattern_name,
-                    "content": line[:120],  # 截断长行
-                    "suggestion": suggestion
-                })
-                break  # 匹配第一个就够
+    return "\n".join(lines)
 
-    return issues_by_level
-
-def print_report(log_file, issues_by_level):
-    """打印分析报告"""
-    now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-    print("\n" + "=" * 60)
-    print("  小程序日志分析报告")
-    print("=" * 60)
-    print(f"  文件: {log_file.name}")
-    print(f"  报告时间: {now_str}")
-    print("=" * 60)
-
-    total_issues = sum(len(v) for v in issues_by_level.values())
-    if total_issues == 0:
-        print("\n  ✅ 未发现已知问题模式")
-        print("=" * 60)
-        return
-
-    # 按优先级输出
-    for level in ["🔴 严重", "🔴 高", "🟡 中等", "🟢 正常"]:
-        issues = issues_by_level[level]
-        if not issues:
-            continue
-
-        print(f"\n  {level} [{level[1:]}] ({len(issues)} 项)")
-        for i, issue in enumerate(issues, 1):
-            print(f"    {i}. {issue['name']}")
-            print(f"       日志: {issue['content']}")
-            print(f"       建议: {issue['suggestion']}")
-
-    print("\n" + "=" * 60)
-
-# ── 主流程 ────────────────────────────────────────────────────────────────────
 
 def main():
-    print("\n" + "=" * 60)
-    print("  sEMG 小程序日志分析工具")
+    """Main function."""
+    print("")
+    print("=" * 60)
+    print("  sEMG Miniprogram Log Analyzer")
     print("=" * 60)
 
-    # 查找最新日志
-    log_file = find_latest_log()
-    if not log_file:
-        print(f"[ERROR] 未找到日志文件 (*.txt) 在: {MINI_LOG_DIR}")
-        print("[INFO] 请先运行小程序并开启日志服务器")
-        print("=" * 60)
+    if not LOG_DIR.exists():
+        print(f"[ERROR] Log directory not found: {LOG_DIR}")
+        print("Please run miniprogram-preview first to generate logs.")
         sys.exit(1)
 
-    # 分析日志
-    issues_by_level = analyze_log(log_file)
+    path = find_latest_log()
+    if not path:
+        print(f"[ERROR] No .txt log files found in {LOG_DIR}")
+        print("Please run miniprogram-preview first.")
+        sys.exit(1)
 
-    # 输出报告
-    print_report(log_file, issues_by_level)
+    print(f"[INFO] Analyzing: {Path(path).name}")
+
+    findings, total = analyze(path)
+    report = format_report(path, findings, total)
+    print("")
+    print(report)
+    print("=" * 60)
+
 
 if __name__ == "__main__":
-    # Windows 控制台 UTF-8 支持
-    if sys.platform == "win32":
-        sys.stdout.reconfigure(encoding="utf-8")
-        sys.stderr.reconfigure(encoding="utf-8")
-
     main()
