@@ -12,19 +12,19 @@ import glob
 import time
 from pathlib import Path
 
-# ── Config ────────────────────────────────────────────────────────────────────
+#  Config 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_DIR = SCRIPT_DIR.parent.parent    # skills/firmware-debug -> skills -> project root
 LOG_DIR    = PROJECT_DIR / "logs" / "serial"
 
-# ── Severity levels (ASCII only, no Unicode emojis) ─────────────────────────
+#  Severity levels (ASCII only, no Unicode emojis) 
 CRIT  = "[CRIT]"   # crash / deadlock
 HIGH  = "[HIGH]"   # timeout / fatal error
 MED   = "[MED ]"   # warning / anomaly
 LOW   = "[LOW ]"   # info
 OK    = "[OK ]"     # expected / healthy
 
-# ── Pattern definitions ────────────────────────────────────────────────────────
+#  Pattern definitions 
 PATTERNS = [
     # (severity, label, regex, hint)
     (CRIT,  "Firmware crash (HardFault/UsageFault)",
@@ -132,7 +132,7 @@ def analyze(path):
     for line in lines:
         for sev, label, pat, hint in PATTERNS:
             if pat.search(line):
-                # ── Special case: "JSON parse failed" but line contains "err=OK" → skip ──
+                #  Special case: "JSON parse failed" but line contains "err=OK" → skip 
                 if label == "JSON parse failed" and re.search(r"err=OK", line, re.IGNORECASE):
                     continue  # skip this pattern, try next pattern
                 findings[sev].append((label, line.strip(), hint))

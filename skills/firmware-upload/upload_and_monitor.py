@@ -31,7 +31,7 @@ def kill_com_port_processes():
     log(">>> Step 1: Killing COM4 processes...")
     import os as osmod
     my_pid = osmod.getpid()
-    # 只杀可能占用COM4的进程：串口监控、pio、platformio
+    # COM4pioplatformio
     targets = ['serial_monitor.py']
     for t in targets:
         subprocess.run(
@@ -39,7 +39,7 @@ def kill_com_port_processes():
              f'$procs = Get-CimInstance Win32_Process -Filter "Name=\'python.exe\'";'
              f'foreach ($p in $procs) {{ if ($p.ProcessId -ne {my_pid} -and $p.CommandLine -like "*{t}*") {{ Stop-Process -Id $p.ProcessId -Force }} }}'],
             capture_output=True, text=True)
-    # 杀 pio/platformio
+    #  pio/platformio
     subprocess.run(
         ['powershell', '-Command',
          f'Get-Process pio,platformio -ErrorAction SilentlyContinue | Stop-Process -Force'],

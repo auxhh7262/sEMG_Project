@@ -12,19 +12,19 @@ import glob
 import time
 from pathlib import Path
 
-# ── Config ────────────────────────────────────────────────────────────────────
+#  Config 
 SCRIPT_DIR = Path(__file__).parent.resolve()
 PROJECT_DIR = SCRIPT_DIR.parent.parent    # skills/miniprogram-debug -> skills -> project root
 LOG_DIR    = PROJECT_DIR / "logs" / "mini"
 
-# ── Severity levels (ASCII only, no Unicode emojis) ─────────────────────────
+#  Severity levels (ASCII only, no Unicode emojis) 
 CRIT  = "[CRIT]"   # crash / deadlock
 HIGH  = "[HIGH]"   # timeout / fatal error
 MED   = "[MED ]"   # warning / anomaly
 LOW   = "[LOW ]"   # info
 OK    = "[OK ]"     # expected / healthy
 
-# ── Pattern definitions ────────────────────────────────────────────────────────
+#  Pattern definitions 
 PATTERNS = [
     # (severity, label, regex, hint)
     (CRIT,  "Connection failed",
