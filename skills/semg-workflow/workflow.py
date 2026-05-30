@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-semg-workflow: sEMG project combined workflows
-Supports 2 workflows:
-  1. deploy (upload firmware + compile miniprogram)
-  2. analyze (analyze firmware log + miniprogram log)
+semg-workflow: sEMG 项目组合工作流
+支持 2 个工作流：
+  1. deploy（上传固件 + 编译小程序）
+  2. analyze（分析固件日志 + 小程序日志）
 """
 
 import sys
@@ -11,10 +11,10 @@ import time
 import subprocess
 from pathlib import Path
 
-# Project root directory (2 levels up: semg-workflow -> skills -> sEMG_Project)
+# 项目根目录（2 级上溯：semg-workflow -> skills -> sEMG_Project）
 SKILLS_DIR = Path(__file__).parent.parent
 
-# Sub-skill script paths
+# 子 Skill 脚本路径
 FIRMWARE_UPLOAD_SCRIPT = SKILLS_DIR / "firmware-upload" / "upload_and_monitor.py"
 MINIPROGRAM_PREVIEW_SCRIPT = SKILLS_DIR / "miniprogram-preview" / "preview.py"
 FIRMWARE_DEBUG_SCRIPT = SKILLS_DIR / "firmware-debug" / "analyze_log.py"
@@ -23,131 +23,131 @@ MINIPROGRAM_DEBUG_SCRIPT = SKILLS_DIR / "miniprogram-debug" / "analyze_mini_log.
 
 def deploy():
     """
-    Workflow 1: Upload and compile (deploy class)
-    Execution order: firmware-upload -> miniprogram-preview
+    工作流1：上传并编译（部署类）
+    执行顺序：firmware-upload -> miniprogram-preview
     """
     print("=" * 60)
-    print("[WORKFLOW] Upload and Compile (Deploy)")
+    print("🚀 工作流1：上传并编译 (Deploy)")
     print("=" * 60)
 
-    # Step 1: Upload firmware
-    print("\n[1/2] Uploading firmware...")
-    print(f"  Script: {FIRMWARE_UPLOAD_SCRIPT}")
+    # 步骤1：上传固件
+    print("\n【步骤 1/2】上传固件...")
+    print(f"  脚本：{FIRMWARE_UPLOAD_SCRIPT}")
     
     result1 = subprocess.run(
         ["python", str(FIRMWARE_UPLOAD_SCRIPT)],
         cwd=str(SKILLS_DIR / "firmware-upload"),
-        capture_output=False  # Allow GUI window to pop up
+        capture_output=False  # 允许 GUI 窗口弹出
     )
     
     if result1.returncode != 0:
-        print("[ERR] Firmware upload failed")
-        print(f"       Return code: {result1.returncode}")
+        print("❌ 固件上传失败")
+        print(f"   返回码：{result1.returncode}")
         sys.exit(1)
     
-    print("[OK] Firmware upload successful")
-    print("       - Serial monitor GUI started")
-    print("       - Firmware rebooting...")
+    print("✅ 固件上传成功")
+    print("   - 串口监控 GUI 已启动")
+    print("   - 固件正在重启...")
 
-    # Wait for firmware reboot (give it some time)
-    print("       - Waiting for firmware reboot (3 seconds)...")
+    # 等待固件重启（给点时间）
+    print("   - 等待固件重启（3 秒）...")
     time.sleep(3)
 
-    # Step 2: Compile miniprogram
-    print("\n[2/2] Compiling miniprogram...")
-    print(f"  Script: {MINIPROGRAM_PREVIEW_SCRIPT}")
+    # 步骤2：编译小程序
+    print("\n【步骤 2/2】编译小程序...")
+    print(f"  脚本：{MINIPROGRAM_PREVIEW_SCRIPT}")
     
     result2 = subprocess.run(
         ["python", str(MINIPROGRAM_PREVIEW_SCRIPT)],
         cwd=str(SKILLS_DIR / "miniprogram-preview"),
-        capture_output=False  # Allow GUI window to pop up
+        capture_output=False  # 允许 GUI 窗口弹出
     )
     
     if result2.returncode != 0:
-        print("[ERR] Miniprogram compilation failed")
-        print(f"       Return code: {result2.returncode}")
+        print("❌ 小程序编译失败")
+        print(f"   返回码：{result2.returncode}")
         sys.exit(1)
     
-    print("[OK] Miniprogram compilation successful")
-    print("       - Log server GUI started")
-    print("       - Preview pushed to phone")
+    print("✅ 小程序编译成功")
+    print("   - 日志服务器 GUI 已启动")
+    print("   - 预览码已推送到手机")
 
-    # Done
+    # 完成
     print("\n" + "=" * 60)
-    print("[DONE] Deploy complete!")
+    print("🎉 工作流完成！")
     print("=" * 60)
-    print("\n[REPORT] Running status:")
-    print("  - Serial monitor GUI is running (firmware log)")
-    print("  - Miniprogram log server GUI is running (miniprogram log)")
-    print("\n[TIP]")
-    print("  - View firmware log: Serial monitor GUI window")
-    print("  - View miniprogram log: Log server GUI window")
-    print("  - Preview pushed to WeChat on phone")
+    print("\n📊 运行状态：")
+    print("  - 串口监控 GUI 运行中（固件日志）")
+    print("  - 小程序日志服务器 GUI 运行中（小程序日志）")
+    print("\n💡 提示：")
+    print("  - 查看固件日志：串口监控 GUI 窗口")
+    print("  - 查看小程序日志：日志服务器 GUI 窗口")
+    print("  - 预览码已推送到手机微信")
 
 
 def analyze():
     """
-    Workflow 2: Analyze all logs (debug class)
-    Execution order: firmware-debug -> miniprogram-debug
+    工作流2：分析所有日志（调试类）
+    执行顺序：firmware-debug -> miniprogram-debug
     """
     print("=" * 60)
-    print("[WORKFLOW] Analyze All Logs (Debug)")
+    print("🔍 工作流2：分析所有日志 (Analyze)")
     print("=" * 60)
 
-    # Step 1: Analyze firmware log
-    print("\n[1/2] Analyzing firmware log...")
-    print(f"  Script: {FIRMWARE_DEBUG_SCRIPT}")
+    # 步骤1：分析固件日志
+    print("\n【步骤 1/2】分析固件日志...")
+    print(f"  脚本：{FIRMWARE_DEBUG_SCRIPT}")
     
     result1 = subprocess.run(
         ["python", str(FIRMWARE_DEBUG_SCRIPT)],
         cwd=str(SKILLS_DIR / "firmware-debug"),
-        capture_output=False  # Allow interaction
+        capture_output=False  # 允许交互
     )
     
     if result1.returncode != 0:
-        print("[WARN] Firmware log analysis failed (maybe no log file)")
-        print(f"        Return code: {result1.returncode}")
-        # Don't exit, continue to analyze miniprogram log
+        print("⚠️ 固件日志分析失败（可能无日志文件）")
+        print(f"    返回码：{result1.returncode}")
+        # 不退出，继续分析小程序日志
     else:
-        print("[OK] Firmware log analysis complete")
+        print("✅ 固件日志分析完成")
 
-    # Step 2: Analyze miniprogram log
-    print("\n[2/2] Analyzing miniprogram log...")
-    print(f"  Script: {MINIPROGRAM_DEBUG_SCRIPT}")
+    # 步骤2：分析小程序日志
+    print("\n【步骤 2/2】分析小程序日志...")
+    print(f"  脚本：{MINIPROGRAM_DEBUG_SCRIPT}")
     
     result2 = subprocess.run(
         ["python", str(MINIPROGRAM_DEBUG_SCRIPT)],
         cwd=str(SKILLS_DIR / "miniprogram-debug"),
-        capture_output=False  # Allow interaction
+        capture_output=False  # 允许交互
     )
     
     if result2.returncode != 0:
-        print("[WARN] Miniprogram log analysis failed (maybe no log file)")
-        print(f"        Return code: {result2.returncode}")
+        print("⚠️ 小程序日志分析失败（可能无日志文件）")
+        print(f"    返回码：{result2.returncode}")
     else:
-        print("[OK] Miniprogram log analysis complete")
+        print("✅ 小程序日志分析完成")
 
-    # Done
+    # 完成
     print("\n" + "=" * 60)
-    print("[REPORT] Combined analysis report generated")
+    print("📊 联合分析报告已生成")
     print("=" * 60)
-    print("\n[TIP]")
-    print("  - Firmware log analysis: See output above")
-    print("  - Miniprogram log analysis: See output above")
-    print("  - Full log files:")
-    print(f"    - Firmware: {SKILLS_DIR.parent}\\logs\\serial\\")
-    print(f"    - Miniprogram: {SKILLS_DIR.parent}\\logs\\mini\\")
+    print("\n💡 提示：")
+    print("  - 固件日志分析：见上方输出")
+    print("  - 小程序日志分析：见上方输出")
+    print("  - 完整日志文件：")
+    print(f"    - 固件：{SKILLS_DIR.parent}\\logs\\serial\\")
+    print(f"    - 小程序：{SKILLS_DIR.parent}\\logs\\mini\\")
 
 
 def main():
     """
-    Main function: Parse command line arguments, call corresponding workflow
+    主函数：解析命令行参数，调用对应工作流
     """
     if len(sys.argv) < 2:
-        print("Usage: python workflow.py [deploy|analyze]")
-        print("\nAvailable workflows:")
-        print("  1. deploy   - Upload and compile (deploy)")
-        print("  2. analyze  - Analyze all logs (debug)")
+        print("用法：python workflow.py [deploy|analyze]")
+        print("\n可用工作流：")
+        print("  1. deploy   - 上传并编译（部署类）")
+        print("  2. analyze  - 分析所有日志（调试类）")
         sys.exit(1)
 
     action = sys.argv[1].lower()
@@ -157,10 +157,10 @@ def main():
     elif action == "analyze":
         analyze()
     else:
-        print(f"[ERR] Unknown action: {action}")
-        print("\nSupported actions:")
-        print("  - deploy  : Upload and compile")
-        print("  - analyze : Analyze all logs")
+        print(f"❌ 未知工作流：{action}")
+        print("\n支持的工作流：")
+        print("  - deploy  : 上传并编译")
+        print("  - analyze : 分析所有日志")
         sys.exit(1)
 
 

@@ -72,9 +72,11 @@ def append(line, tag='INFO'):
     """Thread-safe append to text widget."""
     # Strip ALL CR characters - tkinter treats \r as carriage return
     line = line.replace('\r', '')
+    # Add timestamp (match log file format)
+    ts = time.strftime('%H:%M:%S')
     def _do():
         txt.configure(state='normal')
-        txt.insert(END, line + '\n', tag)
+        txt.insert(END, f'[{ts}] {line}\n', tag)
         txt.see(END)
         txt.configure(state='disabled')
     txt.after(0, _do)
