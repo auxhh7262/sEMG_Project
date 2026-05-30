@@ -90,4 +90,3 @@ python git_push.py --dry-run
 2. 如果PATH未更新，脚本会直接使用 `C:\Git\cmd\git.exe`
 3. 代理只在push期间生效，完成后立即清除
 4. 如果push失败，代理仍会被清除（安全优先）
-5
