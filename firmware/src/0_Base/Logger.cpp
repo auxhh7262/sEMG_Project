@@ -95,4 +95,5 @@ void _log_impl(const char* fmt, ...) {
     _format_to_buf(g_logBuf, sizeof(g_logBuf), fmt, args);
     va_end(args);
     SERIAL_COMM.print(g_logBuf);
+    SERIAL_COMM.flush();
 }
